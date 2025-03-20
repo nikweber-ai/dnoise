@@ -22,7 +22,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <NavBar onToggleSidebar={toggleSidebar} />
       <div className="flex flex-1 overflow-hidden">
         {user && (
-          <Sidebar isOpen={sidebarOpen} />
+          <Sidebar />
         )}
         <main 
           className={cn(

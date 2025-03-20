@@ -3,7 +3,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Home,
   Image,
@@ -52,7 +52,7 @@ const NavItem = ({ to, icon: Icon, label, end }: NavItemProps) => {
 export function Sidebar() {
   const { isAuthenticated, isAdmin, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   const location = useLocation();
 
   if (isMobile) return null;

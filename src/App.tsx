@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,8 +66,15 @@ const App = () => (
               <Route element={<AuthRoute requireAuth={true} requireAdmin={true} />}>
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/settings" element={<Settings />} />
-                <Route path="/admin/models" element={<AuthRoute><ModelConfig /></AuthRoute>} />
+                <Route path="/admin/models" element={<Models />} />
               </Route>
+
+              {/* Fix ModelConfig route by adding requireAuth prop */}
+              <Route path="/admin/models/:id" element={
+                <AuthRoute requireAuth={true} requireAdmin={true}>
+                  <ModelConfig />
+                </AuthRoute>
+              } />
 
               {/* Catch-all route for 404 */}
               <Route path="*" element={<NotFound />} />
