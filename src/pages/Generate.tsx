@@ -4,10 +4,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useModelSelection } from '@/hooks/useModels';
-import { useImageGeneration } from '@/hooks/useImageGeneration';
+import { useImageGeneration, downloadImage } from '@/hooks/useImageGeneration';
 import { useAuth } from '@/hooks/useAuth';
 import { Model, GeneratedImage } from '@/services/api';
-import { Download, RefreshCw, Zap } from 'lucide-react';
+import { Download, RefreshCw, Zap, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -154,7 +154,7 @@ const Generate = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 fade-in-element">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Generate Images</h1>
         <p className="text-muted-foreground mt-2">
@@ -485,7 +485,7 @@ const Generate = () => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 space-y-2 text-center">
-                  <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+                  <Image className="h-12 w-12 text-muted-foreground/30" />
                   <p className="text-muted-foreground">Your generated images will appear here</p>
                   <p className="text-xs text-muted-foreground/80">
                     Configure your parameters and click Generate

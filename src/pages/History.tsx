@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useImageGeneration, downloadImage } from '@/hooks/useImageGeneration';
 import { Download, Info, Search, Trash } from 'lucide-react';
@@ -47,7 +46,7 @@ const History = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 fade-in-element">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Generation History</h1>
         <p className="text-muted-foreground mt-2">
