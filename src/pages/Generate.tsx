@@ -47,15 +47,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const aspectRatioPresets = [
+  { name: '1:1', value: '1:1', description: 'Square' },
+  { name: '9:16', value: '9:16', description: 'Portrait (Instagram Story)' },
+  { name: '16:9', value: '16:9', description: 'Landscape (HD Video)' },
+  { name: '4:5', value: '4:5', description: 'Portrait (Instagram Post)' },
+  { name: '3:4', value: '3:4', description: 'Portrait (Standard)' },
+  { name: '2:1', value: '2:1', description: 'Landscape (Panoramic)' },
+  { name: '1:2', value: '1:2', description: 'Portrait (Tall)' },
+];
+
 const formSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
-  negativePrompt: z.string().optional(),
   model: z.string().min(1, 'Model is required'),
-  width: z.coerce.number().int().min(128).max(2048),
-  height: z.coerce.number().int().min(128).max(2048),
-  loraStrength: z.coerce.number().min(0).max(1),
+  aspect_ratio: z.string().default('1:1'),
+  lora_scale: z.coerce.number().min(0).max(1.5),
   seed: z.union([z.coerce.number().int().min(0), z.literal('')]).optional(),
-  batchSize: z.coerce.number().int().min(1).max(4),
+  num_outputs: z.coerce.number().int().min(1).max(4),
+  output_quality: z.coerce.number().int().min(0).max(100),
+  num_inference_steps: z.coerce.number().int().min(1).max(50),
   randomizeSeed: z.boolean(),
 });
 
@@ -78,13 +88,13 @@ const Generate = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       prompt: '',
-      negativePrompt: '',
       model: '',
-      width: 512,
-      height: 512,
-      loraStrength: 0.8,
+      aspect_ratio: '1:1',
+      lora_scale: 1,
       seed: '',
-      batchSize: 1,
+      num_outputs: 1,
+      output_quality: 100,
+      num_inference_steps: 28,
       randomizeSeed: true,
     },
   });
@@ -114,25 +124,21 @@ const Generate = () => {
       return;
     }
 
-    if (user.credits <= 0) {
-      toast.error('You do not have enough credits to generate images');
-      return;
-    }
-
-    if (user.credits < values.batchSize) {
-      toast.error(`You only have ${user.credits} credits, but this generation requires ${values.batchSize}`);
+    if (!user.apiKey && !user.isAdmin) {
+      toast.error('Please set your Replicate API key in your profile');
       return;
     }
 
     const params = {
       prompt: values.prompt,
-      negativePrompt: values.negativePrompt,
       model: values.model,
-      width: values.width,
-      height: values.height,
-      loraStrength: values.loraStrength,
+      aspect_ratio: values.aspect_ratio,
+      lora_scale: values.lora_scale,
       seed: values.randomizeSeed ? null : Number(values.seed) || null,
-      batchSize: values.batchSize,
+      num_outputs: values.num_outputs,
+      output_quality: values.output_quality,
+      num_inference_steps: values.num_inference_steps,
+      lora_weights: selectedModel?.lora_weights || undefined,
     };
 
     generateImage(params, {
@@ -151,8 +157,6 @@ const Generate = () => {
   };
 
   const handleUseSeed = (seed: number) => {
-    // Fix the type error by using the correct type for seed
-    // The form schema expects seed to be a number or empty string
     form.setValue('seed', seed);
     form.setValue('randomizeSeed', false);
   };
@@ -161,23 +165,8 @@ const Generate = () => {
     toggleFavorite(imageId);
   };
 
-  const handleUseTemplate = (template: { prompt: string; negativePrompt?: string }) => {
+  const handleUseTemplate = (template: { prompt: string }) => {
     form.setValue('prompt', template.prompt);
-    if (template.negativePrompt) {
-      form.setValue('negativePrompt', template.negativePrompt);
-    }
-  };
-
-  const aspectRatioPresets = [
-    { name: 'Square', width: 512, height: 512 },
-    { name: 'Portrait', width: 512, height: 768 },
-    { name: 'Landscape', width: 768, height: 512 },
-    { name: 'Widescreen', width: 832, height: 512 },
-  ];
-
-  const setAspectRatio = (width: number, height: number) => {
-    form.setValue('width', width);
-    form.setValue('height', height);
   };
 
   return (
@@ -185,7 +174,7 @@ const Generate = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Generate Images</h1>
         <p className="text-muted-foreground mt-2">
-          Create AI-generated images using your Flux Dev models
+          Create AI-generated images using Replicate
         </p>
       </div>
 
@@ -276,89 +265,49 @@ const Generate = () => {
 
                 <FormField
                   control={form.control}
-                  name="negativePrompt"
+                  name="aspect_ratio"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Negative Prompt</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe what you want to avoid..."
-                          className="resize-none"
-                          {...field}
-                        />
-                      </FormControl>
+                      <FormLabel>Aspect Ratio</FormLabel>
+                      <div className="grid grid-cols-4 gap-2">
+                        {aspectRatioPresets.map((preset) => (
+                          <Button
+                            key={preset.value}
+                            type="button"
+                            variant={field.value === preset.value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => field.onChange(preset.value)}
+                            title={preset.description}
+                          >
+                            {preset.name}
+                          </Button>
+                        ))}
+                      </div>
                       <FormDescription>
-                        Elements to exclude from the generation
+                        Select an aspect ratio for your generated image
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="width"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Width</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="height"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Height</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div>
-                  <FormLabel className="text-sm font-medium mb-2 block">Aspect Ratio Presets</FormLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {aspectRatioPresets.map((preset) => (
-                      <Button
-                        key={preset.name}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setAspectRatio(preset.width, preset.height)}
-                      >
-                        {preset.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
                 <FormField
                   control={form.control}
-                  name="loraStrength"
+                  name="lora_scale"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>LoRA Strength: {field.value.toFixed(2)}</FormLabel>
                       <FormControl>
                         <Slider
                           min={0}
-                          max={1}
+                          max={1.5}
                           step={0.01}
                           defaultValue={[field.value]}
                           onValueChange={(values) => field.onChange(values[0])}
                         />
                       </FormControl>
                       <FormDescription>
-                        Adjust the strength of the model's style
+                        Adjust the strength of the model's style (Default: 1.0, Max: 1.5)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -421,23 +370,71 @@ const Generate = () => {
                   />
                 </div>
 
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="num_outputs"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Batch Size: {field.value}</FormLabel>
+                        <FormControl>
+                          <Slider
+                            min={1}
+                            max={4}
+                            step={1}
+                            defaultValue={[field.value]}
+                            onValueChange={(values) => field.onChange(values[0])}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Number of images to generate in one batch
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="output_quality"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Output Quality: {field.value}%</FormLabel>
+                        <FormControl>
+                          <Slider
+                            min={0}
+                            max={100}
+                            step={1}
+                            defaultValue={[field.value]}
+                            onValueChange={(values) => field.onChange(values[0])}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Output image quality (0-100)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="batchSize"
+                  name="num_inference_steps"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Batch Size: {field.value}</FormLabel>
+                      <FormLabel>Steps: {field.value}</FormLabel>
                       <FormControl>
                         <Slider
                           min={1}
-                          max={4}
+                          max={50}
                           step={1}
                           defaultValue={[field.value]}
                           onValueChange={(values) => field.onChange(values[0])}
                         />
                       </FormControl>
                       <FormDescription>
-                        Number of images to generate (consumes {field.value} credits)
+                        Number of denoising steps (1-50, more steps = higher quality but slower)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -445,12 +442,14 @@ const Generate = () => {
                 />
 
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-muted-foreground">
-                    Credits available: <span className="font-medium">{user?.credits || 0}</span>
-                  </div>
+                  {!user?.isAdmin && !user?.apiKey && (
+                    <div className="text-sm text-red-500">
+                      Please add your Replicate API key in your profile to generate images
+                    </div>
+                  )}
                   <Button 
                     type="submit" 
-                    disabled={isGenerating || (user?.credits || 0) < form.watch('batchSize')}
+                    disabled={isGenerating || (!user?.isAdmin && !user?.apiKey)}
                     className="min-w-32"
                   >
                     {isGenerating ? (

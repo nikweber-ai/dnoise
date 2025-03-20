@@ -65,10 +65,10 @@ export interface User {
   email: string;
   name?: string;
   isAdmin: boolean;
-  apiKey?: string; // Added for Replicate API key
-  credits?: number; // Added for user credits
-  models?: string[]; // Added for allowed models
-  creditsReset?: string; // Added for credits reset date
+  apiKey?: string; // Not required for admin
+  models?: string[]; // Models the user has access to
+  highlightColor?: string; // Added for user interface customization
+  creditsReset?: string; // Keeping for backward compatibility
 }
 
 export interface ApiResponse<T> {
@@ -96,6 +96,12 @@ const mockModels: Model[] = [
         id: '2',
         name: 'Portrait',
         prompt: 'portrait of a person, detailed features, soft lighting, photorealistic',
+        modelId: '1'
+      },
+      {
+        id: '3',
+        name: 'Abstract',
+        prompt: 'abstract art, vibrant colors, modern design, high detail',
         modelId: '1'
       }
     ]
@@ -173,16 +179,16 @@ const mockUsers: User[] = [
     email: 'user@example.com',
     isAdmin: false,
     apiKey: '',
-    credits: 100,
-    models: ['1', '2']
+    models: ['1', '2'],
+    highlightColor: '#9b87f5' // Default purple
   },
   {
     id: '2',
     email: 'admin@example.com',
     isAdmin: true,
-    apiKey: 'r8_example_admin_api_key',
-    credits: 1000,
-    models: ['1', '2', '3', '4']
+    apiKey: '', // Admin doesn't need an API key by default
+    models: ['1', '2', '3', '4'],
+    highlightColor: '#0FA0CE' // Blue for admin
   }
 ];
 

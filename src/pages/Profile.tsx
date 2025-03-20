@@ -176,80 +176,82 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Replicate API Key</CardTitle>
-            <CardDescription>
-              Configure your API key for image generation
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Important</AlertTitle>
-              <AlertDescription>
-                You need a Replicate API key to generate images. The API key will be stored securely in your browser.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="text-sm space-y-2">
-              <p>To get your API key:</p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Create an account on <a href="https://replicate.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center">
-                  Replicate <ExternalLink className="h-3 w-3 ml-1" />
-                </a></li>
-                <li>Go to your account settings</li>
-                <li>Create a new API token</li>
-                <li>Copy the token and paste it below</li>
-              </ol>
-            </div>
-            
-            <Form {...apiKeyForm}>
-              <form onSubmit={apiKeyForm.handleSubmit(onApiKeySubmit)} className="space-y-4">
-                <FormField
-                  control={apiKeyForm.control}
-                  name="apiKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>API Key</FormLabel>
-                      <div className="flex space-x-2">
-                        <FormControl>
-                          <div className="relative w-full">
-                            <Input 
-                              type={showApiKey ? "text" : "password"} 
-                              {...field} 
-                              placeholder="r8_..." 
-                              className="pr-10"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={toggleApiKeyVisibility}
-                            >
-                              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </FormControl>
-                      </div>
-                      <FormDescription>
-                        Your Replicate API key starting with "r8_"
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button 
-                  type="submit"
-                  disabled={updateApiKeyMutation.isPending}
-                >
-                  {updateApiKeyMutation.isPending ? 'Saving...' : 'Save API Key'}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+        {!user?.isAdmin && (
+          <Card className="bg-card/40 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle>Replicate API Key</CardTitle>
+              <CardDescription>
+                Configure your API key for image generation
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Important</AlertTitle>
+                <AlertDescription>
+                  You need a Replicate API key to generate images. The API key will be stored securely in your browser.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="text-sm space-y-2">
+                <p>To get your API key:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Create an account on <a href="https://replicate.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center">
+                    Replicate <ExternalLink className="h-3 w-3 ml-1" />
+                  </a></li>
+                  <li>Go to your account settings</li>
+                  <li>Create a new API token</li>
+                  <li>Copy the token and paste it below</li>
+                </ol>
+              </div>
+              
+              <Form {...apiKeyForm}>
+                <form onSubmit={apiKeyForm.handleSubmit(onApiKeySubmit)} className="space-y-4">
+                  <FormField
+                    control={apiKeyForm.control}
+                    name="apiKey"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>API Key</FormLabel>
+                        <div className="flex space-x-2">
+                          <FormControl>
+                            <div className="relative w-full">
+                              <Input 
+                                type={showApiKey ? "text" : "password"} 
+                                {...field} 
+                                placeholder="r8_..." 
+                                className="pr-10"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={toggleApiKeyVisibility}
+                              >
+                                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </FormControl>
+                        </div>
+                        <FormDescription>
+                          Your Replicate API key starting with "r8_"
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit"
+                    disabled={updateApiKeyMutation.isPending}
+                  >
+                    {updateApiKeyMutation.isPending ? 'Saving...' : 'Save API Key'}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="bg-card/40 backdrop-blur-sm">
           <CardHeader>

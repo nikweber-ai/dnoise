@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 // Admin Pages
 import Users from "./pages/admin/Users";
 import Settings from "./pages/admin/Settings";
+import Models from "./pages/admin/Models";
 
 // Error Pages
 import NotFound from "./pages/NotFound";
@@ -64,6 +65,7 @@ const App = () => (
               <Route element={<AuthRoute requireAuth={true} requireAdmin={true} />}>
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/settings" element={<Settings />} />
+                <Route path="/admin/models" element={<Models />} />
               </Route>
 
               {/* Catch-all route for 404 */}

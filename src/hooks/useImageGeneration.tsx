@@ -11,6 +11,11 @@ export const useImageGeneration = () => {
   // Generate images
   const generateMutation = useMutation({
     mutationFn: async (params: GenerationParams) => {
+      // Check if user is admin (doesn't need API key) or has an API key
+      if (!user?.isAdmin && !user?.apiKey) {
+        throw new Error('Replicate API key not set. Please add your API key in your profile settings.');
+      }
+      
       const response = await api.generateImage(params);
       if (!response.success) {
         toast.error(response.error || 'Image generation failed');
@@ -25,6 +30,7 @@ export const useImageGeneration = () => {
     },
     onError: (error) => {
       console.error('Generation error:', error);
+      toast.error(`Generation failed: ${error.message}`);
     },
   });
 
