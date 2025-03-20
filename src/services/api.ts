@@ -9,6 +9,15 @@ export interface Model {
   name: string;
   description?: string;
   defaultPrompt?: string;
+  promptTemplates?: PromptTemplate[];
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  negativePrompt?: string;
+  modelId: string;
 }
 
 export interface GenerationParams {
@@ -33,6 +42,7 @@ export interface GeneratedImage {
   model: string;
   createdAt: string;
   userId: string;
+  isFavorite?: boolean;
 }
 
 export interface User {
@@ -57,25 +67,81 @@ const mockModels: Model[] = [
     id: '1',
     name: 'Flux Dev 1.0',
     description: 'General purpose image generation model',
-    defaultPrompt: 'a beautiful photograph of a landscape, high quality, 8k'
+    defaultPrompt: 'a beautiful photograph of a landscape, high quality, 8k',
+    promptTemplates: [
+      {
+        id: '1',
+        name: 'Landscape',
+        prompt: 'a beautiful photograph of a landscape, high quality, 8k, detailed',
+        modelId: '1'
+      },
+      {
+        id: '2',
+        name: 'Portrait',
+        prompt: 'portrait of a person, detailed features, soft lighting, photorealistic',
+        modelId: '1'
+      }
+    ]
   },
   {
     id: '2',
     name: 'Flux Dev 2.0',
     description: 'Enhanced image generation with better coherence',
-    defaultPrompt: 'a detailed portrait of a person, professional lighting, studio quality'
+    defaultPrompt: 'a detailed portrait of a person, professional lighting, studio quality',
+    promptTemplates: [
+      {
+        id: '3',
+        name: 'Studio Portrait',
+        prompt: 'a detailed portrait of a person, professional lighting, studio quality, high resolution',
+        modelId: '2'
+      },
+      {
+        id: '4',
+        name: 'Product Shot',
+        prompt: 'product photography, minimal background, professional lighting, high detail',
+        modelId: '2'
+      }
+    ]
   },
   {
     id: '3',
     name: 'Flux Character',
     description: 'Specialized in character creation',
-    defaultPrompt: 'character concept art, full body, detailed features, high quality'
+    defaultPrompt: 'character concept art, full body, detailed features, high quality',
+    promptTemplates: [
+      {
+        id: '5',
+        name: 'Fantasy Character',
+        prompt: 'fantasy character concept art, full body, detailed features, ornate clothing, magical elements',
+        modelId: '3'
+      },
+      {
+        id: '6',
+        name: 'Sci-Fi Character',
+        prompt: 'sci-fi character, futuristic outfit, cyberpunk style, detailed tech elements',
+        modelId: '3'
+      }
+    ]
   },
   {
     id: '4',
     name: 'Flux Landscape',
     description: 'Optimized for landscapes and environments',
-    defaultPrompt: 'epic landscape scene, volumetric lighting, detailed, 8k, cinematic'
+    defaultPrompt: 'epic landscape scene, volumetric lighting, detailed, 8k, cinematic',
+    promptTemplates: [
+      {
+        id: '7',
+        name: 'Epic Vista',
+        prompt: 'epic landscape vista, dramatic lighting, fog, mountains, 8k detail, cinematic',
+        modelId: '4'
+      },
+      {
+        id: '8',
+        name: 'Urban Scene',
+        prompt: 'detailed urban cityscape, architectural elements, street level, atmospheric lighting',
+        modelId: '4'
+      }
+    ]
   }
 ];
 
@@ -83,7 +149,7 @@ const mockUsers: User[] = [
   {
     id: '1',
     email: 'user@example.com',
-    credits: 100,
+    credits: 0, // Starting with 0 credits instead of 100
     creditsReset: '2023-06-01',
     isAdmin: false,
     models: ['1', '2']
@@ -91,13 +157,14 @@ const mockUsers: User[] = [
   {
     id: '2',
     email: 'admin@example.com',
-    credits: 500,
+    credits: 500, // Admin still has credits for testing
     creditsReset: '2023-06-01',
     isAdmin: true,
     models: ['1', '2', '3', '4']
   }
 ];
 
+// Mock generated images with favorite status
 const mockImages: GeneratedImage[] = [
   {
     id: '1',
@@ -108,7 +175,8 @@ const mockImages: GeneratedImage[] = [
     seed: 12345,
     model: '1',
     createdAt: '2023-05-15T10:30:00Z',
-    userId: '1'
+    userId: '1',
+    isFavorite: false
   },
   {
     id: '2',
@@ -119,7 +187,8 @@ const mockImages: GeneratedImage[] = [
     seed: 67890,
     model: '2',
     createdAt: '2023-05-16T14:20:00Z',
-    userId: '1'
+    userId: '1',
+    isFavorite: true
   },
   {
     id: '3',
@@ -130,7 +199,8 @@ const mockImages: GeneratedImage[] = [
     seed: 24680,
     model: '3',
     createdAt: '2023-05-17T09:15:00Z',
-    userId: '2'
+    userId: '2',
+    isFavorite: false
   }
 ];
 
@@ -158,6 +228,15 @@ export const api = {
     
     const userModels = mockModels.filter(model => user.models.includes(model.id));
     return getMockData(userModels);
+  },
+
+  getPromptTemplates: async (modelId: string): Promise<ApiResponse<PromptTemplate[]>> => {
+    const model = mockModels.find(m => m.id === modelId);
+    if (!model) {
+      return { success: false, error: 'Model not found' };
+    }
+    
+    return { success: true, data: model.promptTemplates || [] };
   },
 
   // User functions
@@ -225,7 +304,8 @@ export const api = {
         seed: randomSeed,
         model: params.model,
         createdAt: new Date().toISOString(),
-        userId: user.id
+        userId: user.id,
+        isFavorite: false
       });
     }
     
@@ -257,5 +337,44 @@ export const api = {
     userHistory.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     return { success: true, data: userHistory };
+  },
+
+  // Toggle favorite status
+  toggleFavorite: async (imageId: string): Promise<ApiResponse<GeneratedImage>> => {
+    const history = localStorage.getItem('generationHistory');
+    if (!history) {
+      return { success: false, error: 'Image not found' };
+    }
+    
+    const generationHistory: GeneratedImage[] = JSON.parse(history);
+    const imageIndex = generationHistory.findIndex(img => img.id === imageId);
+    
+    if (imageIndex === -1) {
+      return { success: false, error: 'Image not found' };
+    }
+    
+    // Toggle favorite status
+    generationHistory[imageIndex].isFavorite = !generationHistory[imageIndex].isFavorite;
+    
+    // Save updated history
+    localStorage.setItem('generationHistory', JSON.stringify(generationHistory));
+    
+    return { success: true, data: generationHistory[imageIndex] };
+  },
+
+  // Get favorite images
+  getFavorites: async (userId: string): Promise<ApiResponse<GeneratedImage[]>> => {
+    const history = localStorage.getItem('generationHistory');
+    if (!history) {
+      return { success: true, data: [] };
+    }
+    
+    const generationHistory: GeneratedImage[] = JSON.parse(history);
+    const favorites = generationHistory.filter(img => img.userId === userId && img.isFavorite);
+    
+    // Sort by creation date (newest first)
+    favorites.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return { success: true, data: favorites };
   }
 };

@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Mock users for demonstration
       const mockUsers = [
-        { id: '1', email: 'user@example.com', password: 'password', isAdmin: false, credits: 100, creditsReset: '2023-06-01' },
+        { id: '1', email: 'user@example.com', password: 'password', isAdmin: false, credits: 0, creditsReset: '2023-06-01' },
         { id: '2', email: 'admin@example.com', password: 'password', isAdmin: true, credits: 500, creditsReset: '2023-06-01' }
       ];
       
@@ -90,12 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Demo registration - in a real app, you would call an API
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Create a new user
+      // Create a new user with 0 credits
       const newUser = {
         id: Math.random().toString(36).substring(2, 11),
         email,
         isAdmin: false,
-        credits: 50,
+        credits: 0, // New users start with 0 credits
         creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
       

@@ -21,6 +21,7 @@ export const useImageGeneration = () => {
     onSuccess: (data) => {
       toast.success(`Generated ${data.length} image${data.length !== 1 ? 's' : ''}`);
       queryClient.invalidateQueries({ queryKey: ['generationHistory', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
     },
     onError: (error) => {
       console.error('Generation error:', error);

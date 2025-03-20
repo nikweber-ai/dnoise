@@ -7,7 +7,7 @@ import { useModelSelection } from '@/hooks/useModels';
 import { useImageGeneration, downloadImage } from '@/hooks/useImageGeneration';
 import { useAuth } from '@/hooks/useAuth';
 import { Model, GeneratedImage } from '@/services/api';
-import { Download, RefreshCw, Zap, Image } from 'lucide-react';
+import { Download, RefreshCw, Zap, Image, BookmarkPlus, Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -38,6 +38,14 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { useFavorites } from '@/hooks/useFavorites';
+import { usePromptTemplates } from '@/hooks/usePromptTemplates';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const formSchema = z.object({
   prompt: z.string().min(1, 'Prompt is required'),
@@ -57,8 +65,14 @@ const Generate = () => {
   const { user } = useAuth();
   const { userModels, isLoading: isLoadingModels, getDefaultModel } = useModelSelection();
   const { generateImage, isGenerating } = useImageGeneration();
+  const { toggleFavorite } = useFavorites();
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+
+  // Get prompt templates for the selected model
+  const { templates: promptTemplates, isLoading: isLoadingTemplates } = usePromptTemplates(
+    selectedModel?.id || ''
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -143,6 +157,17 @@ const Generate = () => {
     form.setValue('randomizeSeed', false);
   };
 
+  const handleToggleFavorite = (imageId: string) => {
+    toggleFavorite(imageId);
+  };
+
+  const handleUseTemplate = (template: { prompt: string; negativePrompt?: string }) => {
+    form.setValue('prompt', template.prompt);
+    if (template.negativePrompt) {
+      form.setValue('negativePrompt', template.negativePrompt);
+    }
+  };
+
   const aspectRatioPresets = [
     { name: 'Square', width: 512, height: 512 },
     { name: 'Portrait', width: 512, height: 768 },
@@ -211,6 +236,25 @@ const Generate = () => {
                     </FormItem>
                   )}
                 />
+
+                {promptTemplates && promptTemplates.length > 0 && (
+                  <div className="mb-4">
+                    <FormLabel className="text-sm font-medium mb-2 block">Prompt Templates</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {promptTemplates.map((template) => (
+                        <Button
+                          key={template.id}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUseTemplate(template)}
+                        >
+                          {template.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
@@ -453,7 +497,7 @@ const Generate = () => {
                           alt={image.prompt}
                           className="w-full aspect-square object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <Button 
                             variant="outline" 
                             size="icon"
@@ -461,6 +505,17 @@ const Generate = () => {
                             className="rounded-full bg-white/20 hover:bg-white/40"
                           >
                             <Download className="h-5 w-5" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleToggleFavorite(image.id)}
+                            className="rounded-full bg-white/20 hover:bg-white/40"
+                          >
+                            {image.isFavorite ? 
+                              <Bookmark className="h-5 w-5 fill-current" /> : 
+                              <BookmarkPlus className="h-5 w-5" />
+                            }
                           </Button>
                         </div>
                       </div>
