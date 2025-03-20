@@ -1,10 +1,12 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, Model, User } from '@/services/api';
+import { api, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -12,33 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
-import { Edit, MoreHorizontal, Pencil, UserPlus } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Form,
   FormControl,
@@ -48,329 +23,189 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Edit, Check, X } from 'lucide-react';
 
-const formSchema = z.object({
+const userFormSchema = z.object({
   email: z.string().email('Please enter a valid email'),
-  credits: z.coerce.number().int().min(0, 'Credits cannot be negative'),
+  name: z.string().optional(),
   isAdmin: z.boolean(),
-  models: z.array(z.string()),
+  credits: z.coerce.number().int().min(0, 'Credits cannot be negative'),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type UserFormValues = z.infer<typeof userFormSchema>;
 
 const Users = () => {
+  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [editCredits, setEditCredits] = useState<string>('');
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Get users
-  const { data: users, isLoading: isLoadingUsers } = useQuery({
+  const { data: users, isLoading, isError } = useQuery({
     queryKey: ['users'],
-    queryFn: async () => {
-      const response = await api.getUsers();
-      if (!response.success) {
-        toast.error(response.error || 'Failed to fetch users');
-        throw new Error(response.error);
-      }
-      return response.data || [];
-    },
+    queryFn: api.getUsers,
   });
 
-  // Get all models
-  const { data: models, isLoading: isLoadingModels } = useQuery({
-    queryKey: ['models'],
-    queryFn: async () => {
-      const response = await api.getModels();
-      if (!response.success) {
-        toast.error(response.error || 'Failed to fetch models');
-        throw new Error(response.error);
-      }
-      return response.data || [];
-    },
-  });
-
-  // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async (data: { userId: string; userData: Partial<User> }) => {
       const response = await api.updateUser(data.userId, data.userData);
       if (!response.success) {
-        toast.error(response.error || 'Failed to update user');
-        throw new Error(response.error);
+        throw new Error(response.error || 'Failed to update user');
       }
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('User updated successfully');
-      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setEditUserId(null);
     },
     onError: (error) => {
-      console.error('Error updating user:', error);
+      toast.error(error.message || 'Failed to update user');
     },
   });
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       email: '',
-      credits: 0,
+      name: '',
       isAdmin: false,
-      models: [],
+      credits: 0,
     },
   });
 
-  const openEditDialog = (user: User) => {
-    setSelectedUser(user);
-    form.reset({
-      email: user.email,
-      credits: user.credits,
-      isAdmin: user.isAdmin,
-      models: user.models,
-    });
-    setDialogOpen(true);
+  useEffect(() => {
+    if (editUserId && users && users.data) {
+      const userToEdit = users.data.find((user) => user.id === editUserId);
+      if (userToEdit) {
+        setEditCredits(userToEdit.credits !== undefined ? userToEdit.credits.toString() : '0');
+      }
+    }
+  }, [editUserId, users]);
+
+  const onSubmit = (userId: string) => {
+    return async () => {
+      if (!editCredits) {
+        toast.error('Credits cannot be empty');
+        return;
+      }
+
+      const updatedUser = { 
+        credits: Number(editCredits) || 0,
+      };
+
+      updateUserMutation.mutate({ userId, userData: updatedUser });
+    };
   };
 
-  const onSubmit = (data: FormValues) => {
-    if (!selectedUser) return;
-    
-    updateUserMutation.mutate({
-      userId: selectedUser.id,
-      userData: {
-        email: data.email,
-        credits: data.credits,
-        isAdmin: data.isAdmin,
-        models: data.models,
-      },
-    });
+  const handleEditClick = (userId: string) => {
+    setEditUserId(userId);
   };
 
-  const filteredUsers = users?.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleCancelClick = () => {
+    setEditUserId(null);
+  };
+
+  const getModelName = (modelId: string) => {
+    // Replace this with your actual logic to fetch model names based on modelId
+    return `Model ${modelId}`;
+  };
+
+  const renderUserRow = (user: User) => (
+    <TableRow key={user.id}>
+      <TableCell>{user.id}</TableCell>
+      <TableCell>{user.email}</TableCell>
+      <TableCell>{user.name || 'N/A'}</TableCell>
+      <TableCell>
+        <span className="font-medium">
+          {user.credits !== undefined ? user.credits : 'N/A'}
+        </span>
+      </TableCell>
+      <TableCell>
+        {user.models && user.models.length > 0 
+          ? user.models.map(modelId => getModelName(modelId)).join(', ')
+          : 'None'}
+      </TableCell>
+      <TableCell>{user.isAdmin ? 'Yes' : 'No'}</TableCell>
+      <TableCell className="flex items-center space-x-2">
+        {editUserId === user.id ? (
+          <>
+            <Input
+              type="number"
+              value={editCredits}
+              onChange={(e) => setEditCredits(e.target.value)}
+              className="w-24"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSubmit(user.id)}
+              disabled={updateUserMutation.isPending}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCancelClick}>
+              <X className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <Button variant="ghost" size="icon" onClick={() => handleEditClick(user.id)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   );
+
+  if (isLoading) {
+    return <div>Loading users...</div>;
+  }
+
+  if (isError || !users || !users.data) {
+    return <div>Error loading users.</div>;
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Users</h1>
         <p className="text-muted-foreground mt-2">
-          Manage users, credits, and model access
+          Manage user accounts and permissions
         </p>
       </div>
 
       <Card className="bg-card/40 backdrop-blur-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>
-                {users?.length || 0} registered users
-              </CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Input
-                type="search"
-                placeholder="Search users..."
-                className="max-w-xs"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-            </div>
-          </div>
+          <CardTitle>User List</CardTitle>
+          <CardDescription>
+            View and manage user accounts
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingUsers ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin-slow">
-                <div className="h-8 w-8 border-3 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
-              </div>
-            </div>
-          ) : filteredUsers && filteredUsers.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Credits</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Models</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
-                    <TableCell>{user.credits}</TableCell>
-                    <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
-                    <TableCell>{user.models.length}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No users found</p>
-              {searchTerm && (
-                <p className="text-sm mt-2">Try adjusting your search terms</p>
-              )}
-            </div>
-          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Credits</TableHead>
+                <TableHead>Models</TableHead>
+                <TableHead>Admin</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.data.map(renderUserRow)}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user details, credits, and model access
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="credits"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Credits</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Available credits for image generation
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isAdmin"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Administrator</FormLabel>
-                      <FormDescription>
-                        Grant administrative privileges to this user
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <FormLabel>Model Access</FormLabel>
-                <FormDescription>
-                  Select which models this user can access
-                </FormDescription>
-                
-                {isLoadingModels ? (
-                  <div className="flex justify-center py-4">
-                    <div className="animate-spin-slow">
-                      <div className="h-5 w-5 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
-                    </div>
-                  </div>
-                ) : (
-                  models?.map((model) => (
-                    <FormField
-                      key={model.id}
-                      control={form.control}
-                      name="models"
-                      render={({ field }) => (
-                        <FormItem 
-                          key={model.id}
-                          className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(model.id)}
-                              onCheckedChange={(checked) => {
-                                const updatedModels = checked
-                                  ? [...field.value, model.id]
-                                  : field.value.filter((id) => id !== model.id);
-                                field.onChange(updatedModels);
-                              }}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel className="text-sm font-medium">
-                              {model.name}
-                            </FormLabel>
-                            {model.description && (
-                              <FormDescription className="text-xs">
-                                {model.description}
-                              </FormDescription>
-                            )}
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  ))
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={updateUserMutation.isPending}
-                >
-                  {updateUserMutation.isPending ? 'Saving...' : 'Save changes'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

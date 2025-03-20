@@ -1,280 +1,161 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from 'sonner';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  isAdmin: boolean;
-  credits: number;
-  creditsReset: string;
-}
+import { User } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  resetUserCredits: (userId: string, amount: number) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  register: (email: string, password: string, name?: string) => Promise<boolean>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isAdmin: boolean;
+  forgotPassword: (email: string) => Promise<boolean>;
+  resetPassword: (token: string, password: string) => Promise<boolean>;
+  updateCurrentUser: (userData: Partial<User>) => void; // Added this function
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-  // Function to check if credits should be reset based on system settings
-  const checkCreditReset = () => {
-    if (!user) return;
-    
-    try {
-      // Get system settings from localStorage
-      const settingsString = localStorage.getItem('systemSettings');
-      if (!settingsString) return;
-      
-      const settings = JSON.parse(settingsString);
-      if (!settings.creditRolloverEnabled) return;
-      
-      const now = new Date();
-      const resetDay = settings.creditResetDay || 1;
-      const monthlyCredits = settings.monthlyCredits || 0;
-      
-      // Create a date object for when credits should next reset
-      const nextResetDate = new Date(user.creditsReset);
-      
-      // If it's time to reset credits
-      if (now >= nextResetDate) {
-        // Set the next reset date to be next month
-        const newResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
-        
-        // Update the user with new credits and reset date
-        const updatedUser = {
-          ...user,
-          credits: monthlyCredits,
-          creditsReset: newResetDate.toISOString()
-        };
-        
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        toast.info(`Your credits have been reset to ${monthlyCredits}`);
-      }
-    } catch (error) {
-      console.error('Error checking credit reset:', error);
-    }
-  };
+const getStoredUser = (): User | null => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (error) {
+    console.error('Failed to parse user from localStorage', error);
+    localStorage.removeItem('user');
+    return null;
+  }
+};
 
-  // Check if user is logged in on mount
+const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(getStoredUser());
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error('Authentication error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
+    const storedUser = getStoredUser();
+    setUser(storedUser);
   }, []);
 
-  // Check for credit reset whenever the user object changes
-  useEffect(() => {
-    if (user) {
-      checkCreditReset();
-    }
-  }, [user]);
-
-  // For demo purposes, we'll use localStorage
-  // In a real app, you would use a proper authentication system
-  const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Demo authentication - in a real app, you would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock users for demonstration
-      const mockUsers = [
-        { id: '1', email: 'user@example.com', password: 'password', isAdmin: false, credits: 0, creditsReset: '2023-06-01' },
-        { id: '2', email: 'admin@example.com', password: 'password', isAdmin: true, credits: 500, creditsReset: '2023-06-01' }
-      ];
-      
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const { password, ...userWithoutPassword } = foundUser;
-        
-        // Check credit reset before saving user
-        const settingsString = localStorage.getItem('systemSettings');
-        if (settingsString) {
-          const settings = JSON.parse(settingsString);
-          if (settings.creditRolloverEnabled) {
-            const now = new Date();
-            const resetDay = settings.creditResetDay || 1;
-            
-            // Set the next reset date to be this month or next month
-            let nextResetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
-            if (now > nextResetDate) {
-              nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
-            }
-            
-            userWithoutPassword.creditsReset = nextResetDate.toISOString();
-          }
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    // Mock authentication
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (email === 'user@example.com' && password === 'password') {
+          const mockUser: User = {
+            id: '1',
+            email: 'user@example.com',
+            isAdmin: false,
+            credits: 100,
+            models: ['1', '2']
+          };
+          setUser(mockUser);
+          localStorage.setItem('user', JSON.stringify(mockUser));
+          resolve(true);
+        } else if (email === 'admin@example.com' && password === 'admin') {
+          const mockAdmin: User = {
+            id: '2',
+            email: 'admin@example.com',
+            isAdmin: true,
+            apiKey: 'r8_example_admin_api_key',
+            credits: 1000,
+            models: ['1', '2', '3', '4']
+          };
+          setUser(mockAdmin);
+          localStorage.setItem('user', JSON.stringify(mockAdmin));
+          resolve(true);
+        } else {
+          resolve(false);
         }
-        
-        localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-        setUser(userWithoutPassword);
-        toast.success('Signed in successfully');
-      } else {
-        setError('Invalid email or password');
-        toast.error('Invalid email or password');
-      }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      setError('An error occurred during sign in');
-      toast.error('An error occurred during sign in');
-    } finally {
-      setLoading(false);
-    }
+        setIsLoading(false);
+      }, 1000);
+    });
   };
 
-  const signUp = async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Demo registration - in a real app, you would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get default credits from system settings
-      const settingsString = localStorage.getItem('systemSettings');
-      let defaultCredits = 0;
-      let nextResetDate = new Date();
-      nextResetDate.setMonth(nextResetDate.getMonth() + 1);
-      
-      if (settingsString) {
-        const settings = JSON.parse(settingsString);
-        defaultCredits = settings.defaultCredits || 0;
-        
-        if (settings.creditRolloverEnabled) {
-          const now = new Date();
-          const resetDay = settings.creditResetDay || 1;
-          
-          // Set the next reset date
-          nextResetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
-          if (now > nextResetDate) {
-            nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
-          }
-        }
-      }
-      
-      // Create a new user with configured default credits
-      const newUser = {
-        id: Math.random().toString(36).substring(2, 11),
-        email,
-        isAdmin: false,
-        credits: defaultCredits, 
-        creditsReset: nextResetDate.toISOString(),
-      };
-      
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
-      toast.success('Account created successfully');
-    } catch (error) {
-      console.error('Sign up error:', error);
-      setError('An error occurred during registration');
-      toast.error('An error occurred during registration');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      localStorage.removeItem('user');
-      setUser(null);
-      toast.success('Signed out successfully');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('An error occurred during sign out');
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Demo password reset - in a real app, you would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Password reset email sent');
-    } catch (error) {
-      console.error('Password reset error:', error);
-      setError('An error occurred during password reset');
-      toast.error('An error occurred during password reset');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Admin function to reset a user's credits manually
-  const resetUserCredits = async (userId: string, amount: number) => {
-    if (!user?.isAdmin) {
-      toast.error('Only administrators can reset user credits');
-      return;
-    }
-    
-    try {
-      // In a real app, this would be an API call
-      // For demo, we'll just update if it's the current user
-      if (user.id === userId) {
-        const updatedUser = {
-          ...user,
-          credits: amount
+  const register = async (email: string, password: string, name?: string): Promise<boolean> => {
+    setIsLoading(true);
+    // Mock registration
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockUser: User = {
+          id: '3',
+          email: email,
+          name: name,
+          isAdmin: false,
+          credits: 100,
+          models: ['1', '2']
         };
-        
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        toast.success(`Credits updated to ${amount}`);
-      } else {
-        // In a real app, this would update the credits of a different user
-        toast.success(`Credits for user ${userId} updated to ${amount}`);
-      }
-    } catch (error) {
-      console.error('Reset credits error:', error);
-      toast.error('An error occurred while updating credits');
+        setUser(mockUser);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        resolve(true);
+        setIsLoading(false);
+      }, 1000);
+    });
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  const forgotPassword = async (email: string): Promise<boolean> => {
+    setIsLoading(true);
+    // Mock forgot password
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Forgot password email sent to:', email);
+        resolve(true);
+        setIsLoading(false);
+      }, 1000);
+    });
+  };
+
+  const resetPassword = async (token: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    // Mock reset password
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Password reset with token:', token, 'and new password:', password);
+        resolve(true);
+        setIsLoading(false);
+      }, 1000);
+    });
+  };
+
+  const updateCurrentUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
   const value = {
     user,
-    loading,
-    error,
-    signIn,
-    signUp,
-    signOut,
+    login,
+    logout,
+    register,
+    isAuthenticated: !!user,
+    isLoading,
+    isAdmin: user?.isAdmin || false,
+    forgotPassword,
     resetPassword,
-    resetUserCredits,
+    updateCurrentUser, // Add this to the context value
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export default AuthProvider;

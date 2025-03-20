@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -49,7 +50,7 @@ const Settings = () => {
   const apiForm = useForm<ApiFormValues>({
     resolver: zodResolver(apiFormSchema),
     defaultValues: {
-      apiEndpoint: 'https://api.comfydeploy.com/v1',
+      apiEndpoint: 'https://api.replicate.com/v1',
       apiKey: '****************************************',
       defaultTimeout: 60,
     },
@@ -97,7 +98,7 @@ const Settings = () => {
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
             <CardDescription>
-              Configure the Comfy Deploy API connection
+              Configure the Replicate API connection
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,7 +114,7 @@ const Settings = () => {
                         <Input {...field} />
                       </FormControl>
                       <FormDescription>
-                        The base URL for the Comfy Deploy API
+                        The base URL for the Replicate API
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -130,7 +131,7 @@ const Settings = () => {
                         <Input type="password" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Your Comfy Deploy API authentication key
+                        Your Replicate API authentication key
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { 
   Accordion,
   AccordionContent,
@@ -31,15 +30,17 @@ import {
 } from '@/components/ui/accordion';
 
 const replicateOptionsSchema = z.object({
-  lora_scale: z.coerce.number().min(0).max(1),
-  guidance_scale: z.coerce.number().min(0).max(10),
+  lora_scale: z.coerce.number().min(-1).max(3),
+  guidance: z.coerce.number().min(0).max(10),
   output_quality: z.coerce.number().int().min(1).max(100),
   prompt_strength: z.coerce.number().min(0).max(1),
   num_inference_steps: z.coerce.number().int().min(1).max(50),
   aspect_ratio: z.string(),
   output_format: z.string(),
   disable_safety_checker: z.boolean(),
-  hf_lora: z.string().optional(),
+  go_fast: z.boolean(),
+  megapixels: z.string(),
+  lora_weights: z.string().optional(),
 });
 
 export type ReplicateOptionsValues = z.infer<typeof replicateOptionsSchema>;
@@ -60,15 +61,17 @@ const ReplicateOptions = ({
   const form = useForm<ReplicateOptionsValues>({
     resolver: zodResolver(replicateOptionsSchema),
     defaultValues: {
-      lora_scale: defaultValues?.lora_scale || 0.8,
-      guidance_scale: defaultValues?.guidance_scale || 3.5,
+      lora_scale: defaultValues?.lora_scale || 1,
+      guidance: defaultValues?.guidance || 3,
       output_quality: defaultValues?.output_quality || 80,
       prompt_strength: defaultValues?.prompt_strength || 0.8,
       num_inference_steps: defaultValues?.num_inference_steps || 28,
       aspect_ratio: defaultValues?.aspect_ratio || '1:1',
       output_format: defaultValues?.output_format || 'webp',
       disable_safety_checker: defaultValues?.disable_safety_checker || false,
-      hf_lora: defaultValues?.hf_lora || modelDefaultLora,
+      go_fast: defaultValues?.go_fast !== undefined ? defaultValues.go_fast : true,
+      megapixels: defaultValues?.megapixels || "1",
+      lora_weights: defaultValues?.lora_weights || modelDefaultLora,
     },
   });
 
@@ -91,6 +94,13 @@ const ReplicateOptions = ({
     { label: 'WebP', value: 'webp' },
     { label: 'PNG', value: 'png' },
     { label: 'JPEG', value: 'jpeg' },
+  ];
+
+  const megapixelsOptions = [
+    { label: '1 MP', value: '1' },
+    { label: '2 MP', value: '2' },
+    { label: '4 MP', value: '4' },
+    { label: '8 MP', value: '8' },
   ];
 
   return (
@@ -163,18 +173,49 @@ const ReplicateOptions = ({
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name="megapixels"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Megapixels</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select megapixels" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {megapixelsOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Higher values produce larger, more detailed images but take longer to generate
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {!modelHasDefaultLora && (
               <FormField
                 control={form.control}
-                name="hf_lora"
+                name="lora_weights"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>LoRA Identifier</FormLabel>
+                    <FormLabel>LoRA Weights</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="alvdansen/frosting_lane_flux" />
+                      <Input {...field} placeholder="fofr/flux-80s-cyberpunk" />
                     </FormControl>
                     <FormDescription>
-                      HuggingFace, Replicate, or CivitAI LoRA identifier
+                      LoRA weights from Replicate, HuggingFace, or CivitAI
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -190,15 +231,15 @@ const ReplicateOptions = ({
                   <FormLabel>LoRA Strength: {field.value.toFixed(2)}</FormLabel>
                   <FormControl>
                     <Slider
-                      min={0}
-                      max={1}
+                      min={-1}
+                      max={3}
                       step={0.01}
                       defaultValue={[field.value]}
                       onValueChange={(values) => field.onChange(values[0])}
                     />
                   </FormControl>
                   <FormDescription>
-                    Adjust the strength of the LoRA model
+                    Adjust the strength of the LoRA model (sane values are between 0 and 1)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -207,7 +248,7 @@ const ReplicateOptions = ({
 
             <FormField
               control={form.control}
-              name="guidance_scale"
+              name="guidance"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Guidance Scale: {field.value.toFixed(1)}</FormLabel>
@@ -297,26 +338,49 @@ const ReplicateOptions = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="disable_safety_checker"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Disable Safety Checker</FormLabel>
-                    <FormDescription>
-                      Turn off the safety filter (use responsibly)
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 grid-cols-2">
+              <FormField
+                control={form.control}
+                name="go_fast"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Optimize for Speed</FormLabel>
+                      <FormDescription>
+                        Run faster with FP8 quantized model
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="disable_safety_checker"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Disable Safety Checker</FormLabel>
+                      <FormDescription>
+                        Turn off the safety filter (use responsibly)
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

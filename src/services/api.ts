@@ -12,6 +12,7 @@ export interface Model {
   promptTemplates?: PromptTemplate[];
   replicateModelId?: string; // Added for Replicate
   replicateVersionId?: string; // Added for Replicate
+  lora_weights?: string; // Added for flux-dev-lora
 }
 
 export interface PromptTemplate {
@@ -32,15 +33,17 @@ export interface GenerationParams {
   model: string;
   // Replicate specific parameters
   image?: string; // For img2img
-  hf_lora?: string;
+  lora_weights?: string;
   lora_scale?: number;
   num_outputs?: number;
   aspect_ratio?: string;
   output_format?: string;
-  guidance_scale?: number;
+  guidance?: number;
   output_quality?: number;
   prompt_strength?: number;
   num_inference_steps?: number;
+  go_fast?: boolean;
+  megapixels?: string;
   disable_safety_checker?: boolean;
 }
 
@@ -64,6 +67,8 @@ export interface User {
   name?: string;
   isAdmin: boolean;
   apiKey?: string; // Added for Replicate API key
+  credits?: number; // Added for user credits
+  models?: string[]; // Added for allowed models
 }
 
 export interface ApiResponse<T> {
@@ -76,11 +81,10 @@ export interface ApiResponse<T> {
 const mockModels: Model[] = [
   {
     id: '1',
-    name: 'Flux Dev 1.0',
+    name: 'Flux Dev',
     description: 'General purpose image generation model',
     defaultPrompt: 'a beautiful photograph of a landscape, high quality, 8k',
-    replicateModelId: 'lucataco/flux-dev-lora',
-    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
+    replicateModelId: 'black-forest-labs/flux-dev-lora',
     promptTemplates: [
       {
         id: '1',
@@ -98,56 +102,54 @@ const mockModels: Model[] = [
   },
   {
     id: '2',
-    name: 'Flux Dev 2.0',
-    description: 'Enhanced image generation with better coherence',
-    defaultPrompt: 'a detailed portrait of a person, professional lighting, studio quality',
-    replicateModelId: 'lucataco/flux-dev-lora',
-    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
+    name: 'Flux 80s Cyberpunk',
+    description: 'Generate images in 80s cyberpunk style',
+    defaultPrompt: 'style of 80s cyberpunk, a futuristic city',
+    replicateModelId: 'black-forest-labs/flux-dev-lora',
+    lora_weights: 'fofr/flux-80s-cyberpunk',
     promptTemplates: [
       {
         id: '3',
-        name: 'Studio Portrait',
-        prompt: 'a detailed portrait of a person, professional lighting, studio quality, high resolution',
+        name: 'Cyberpunk Portrait',
+        prompt: 'style of 80s cyberpunk, a portrait photo, neon lights',
         modelId: '2'
       },
       {
         id: '4',
-        name: 'Product Shot',
-        prompt: 'product photography, minimal background, professional lighting, high detail',
+        name: 'Cyberpunk City',
+        prompt: 'style of 80s cyberpunk, futuristic cityscape, neon signs, rainy street',
         modelId: '2'
       }
     ]
   },
   {
     id: '3',
-    name: 'Frosting Lane',
-    description: 'Whimsical and dreamy illustration style',
-    defaultPrompt: 'fantasy illustration, dreamy, magical, colorful',
-    replicateModelId: 'lucataco/flux-dev-lora',
-    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
-    hf_lora: 'alvdansen/frosting_lane_flux',
+    name: 'Flux Pixar',
+    description: 'Generate images in Pixar animation style',
+    defaultPrompt: 'pixar style illustration, cute character',
+    replicateModelId: 'black-forest-labs/flux-dev-lora',
+    lora_weights: 'fofr/flux-pixar',
     promptTemplates: [
       {
         id: '5',
-        name: 'Fantasy Character',
-        prompt: 'fantasy character concept art, dreamy style, colorful, magical elements, frstingln',
+        name: 'Pixar Character',
+        prompt: 'pixar style illustration, cute character, big eyes, colorful',
         modelId: '3'
       },
       {
         id: '6',
-        name: 'Magical Scene',
-        prompt: 'magical fantasy scene, dreamy colors, enchanted forest, frstingln style',
+        name: 'Pixar Scene',
+        prompt: 'pixar style illustration, vibrant scene, colorful background, cute characters',
         modelId: '3'
       }
     ]
   },
   {
     id: '4',
-    name: 'Realistic Photography',
+    name: 'Flux Realistic',
     description: 'Photorealistic image generation',
     defaultPrompt: 'a photorealistic image of a landscape, perfect lighting, 8k',
-    replicateModelId: 'lucataco/flux-dev-lora',
-    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
+    replicateModelId: 'black-forest-labs/flux-dev-lora',
     promptTemplates: [
       {
         id: '7',
@@ -171,12 +173,16 @@ const mockUsers: User[] = [
     email: 'user@example.com',
     isAdmin: false,
     apiKey: '',
+    credits: 100,
+    models: ['1', '2']
   },
   {
     id: '2',
     email: 'admin@example.com',
     isAdmin: true,
     apiKey: 'r8_example_admin_api_key',
+    credits: 1000,
+    models: ['1', '2', '3', '4']
   }
 ];
 
@@ -308,20 +314,21 @@ export const api = {
     // For this demo, we'll simulate the response
     console.log('Would call Replicate API with:', {
       model: selectedModel.replicateModelId,
-      version: selectedModel.replicateVersionId,
       apiKey: user.apiKey.substring(0, 5) + '...',
       input: {
         prompt: params.prompt,
         seed: params.seed,
         num_outputs: params.num_outputs || params.batchSize || 1,
-        hf_lora: selectedModel.hf_lora || params.hf_lora,
-        lora_scale: params.lora_scale || 0.8,
+        lora_weights: selectedModel.lora_weights || params.lora_weights,
+        lora_scale: params.lora_scale || 1,
         aspect_ratio: params.aspect_ratio || '1:1',
         output_format: params.output_format || 'webp',
-        guidance_scale: params.guidance_scale || 3.5,
+        guidance: params.guidance || 3,
         output_quality: params.output_quality || 80,
         prompt_strength: params.prompt_strength || 0.8,
         num_inference_steps: params.num_inference_steps || 28,
+        go_fast: params.go_fast !== undefined ? params.go_fast : true,
+        megapixels: params.megapixels || "1",
         disable_safety_checker: params.disable_safety_checker || false,
       }
     });

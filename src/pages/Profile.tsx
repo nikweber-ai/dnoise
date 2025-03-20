@@ -273,6 +273,11 @@ const Profile = () => {
                     {model.description && (
                       <div className="text-sm text-muted-foreground mt-1">{model.description}</div>
                     )}
+                    {model.lora_weights && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        LoRA: {model.lora_weights}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
