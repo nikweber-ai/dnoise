@@ -30,11 +30,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             user && sidebarOpen ? "md:ml-64" : ""
           )}
         >
-          <div className="animate-fade-in max-w-7xl mx-auto">
+          <div className="fade-in-element max-w-7xl mx-auto">
             {children}
           </div>
         </main>
       </div>
     </div>
   );
-};
+}
