@@ -245,10 +245,33 @@ const getMockData = <T>(data: T[], delayMs = 500): Promise<ApiResponse<T[]>> => 
   });
 };
 
+// Initialize mockModels from localStorage if available
+(() => {
+  const storedModels = localStorage.getItem('modelData');
+  if (storedModels) {
+    const parsedModels = JSON.parse(storedModels);
+    mockModels.length = 0; // Clear the array
+    mockModels.push(...parsedModels); // Add all models from localStorage
+  } else {
+    // If no stored models, save the current mockModels to localStorage
+    localStorage.setItem('modelData', JSON.stringify(mockModels));
+  }
+})();
+
 // API functions
 export const api = {
   // Model functions
   getModels: async (): Promise<ApiResponse<Model[]>> => {
+    // Check if we have persisted models in localStorage
+    const storedModels = localStorage.getItem('modelData');
+    if (storedModels) {
+      const parsedModels = JSON.parse(storedModels);
+      
+      // Update the mockModels array
+      mockModels.length = 0; // Clear the array
+      mockModels.push(...parsedModels); // Add all models from localStorage
+    }
+    
     return getMockData(mockModels);
   },
 
@@ -278,7 +301,21 @@ export const api = {
   // New model management functions
   createModel: async (model: Model): Promise<ApiResponse<Model>> => {
     // In a real app, this would interact with a database
-    mockModels.push(model);
+    // For our mock implementation, we need to ensure persistence in localStorage
+    
+    // Get current models
+    const allModels = [...mockModels]; // Create a copy of the mockModels array
+    
+    // Add the new model
+    allModels.push(model);
+    
+    // Update mockModels array
+    mockModels.length = 0; // Clear the array
+    mockModels.push(...allModels); // Add all models back
+    
+    // Persist to localStorage
+    localStorage.setItem('modelData', JSON.stringify(allModels));
+    
     return { success: true, data: model };
   },
 
@@ -289,6 +326,10 @@ export const api = {
     }
     
     mockModels[index] = { ...mockModels[index], ...updatedModel };
+    
+    // Persist to localStorage
+    localStorage.setItem('modelData', JSON.stringify(mockModels));
+    
     return { success: true, data: mockModels[index] };
   },
 
@@ -299,6 +340,10 @@ export const api = {
     }
     
     mockModels.splice(index, 1);
+    
+    // Persist to localStorage
+    localStorage.setItem('modelData', JSON.stringify(mockModels));
+    
     return { success: true, data: true };
   },
 
@@ -314,6 +359,10 @@ export const api = {
     }
     
     model.promptTemplates.push(template);
+    
+    // Persist to localStorage
+    localStorage.setItem('modelData', JSON.stringify(mockModels));
+    
     return { success: true, data: template };
   },
 
@@ -329,6 +378,10 @@ export const api = {
     }
     
     model.promptTemplates.splice(index, 1);
+    
+    // Persist to localStorage
+    localStorage.setItem('modelData', JSON.stringify(mockModels));
+    
     return { success: true, data: true };
   },
 

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,10 +69,15 @@ const Models = () => {
   
   const queryClient = useQueryClient();
 
-  const { data: models, isLoading } = useQuery({
+  const { data: models, isLoading, refetch } = useQuery({
     queryKey: ['models'],
     queryFn: api.getModels,
+    staleTime: 0,
   });
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const modelForm = useForm<ModelFormValues>({
     resolver: zodResolver(modelFormSchema),
@@ -110,8 +114,10 @@ const Models = () => {
     onSuccess: () => {
       toast.success('Model created successfully');
       queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['userModels'] });
       setShowModelForm(false);
       modelForm.reset();
+      refetch();
     },
     onError: (error) => {
       toast.error('Failed to create model');
@@ -127,14 +133,11 @@ const Models = () => {
         throw new Error("Model not found");
       }
       
-      const updatedModel: Model = {
-        id: data.id,
+      const updatedModel: Partial<Model> = {
         name: data.formData.name,
         description: data.formData.description || '',
         defaultPrompt: data.formData.defaultPrompt || '',
         lora_weights: data.formData.lora_weights || '',
-        promptTemplates: currentModel.promptTemplates || [],
-        replicateModelId: currentModel.replicateModelId,
       };
       
       return api.updateModel(data.id, updatedModel);
@@ -142,9 +145,11 @@ const Models = () => {
     onSuccess: () => {
       toast.success('Model updated successfully');
       queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['userModels'] });
       setEditModelId(null);
       modelForm.reset();
       setShowModelForm(false);
+      refetch();
     },
     onError: (error) => {
       toast.error('Failed to update model');
@@ -159,6 +164,8 @@ const Models = () => {
     onSuccess: () => {
       toast.success('Model deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['userModels'] });
+      refetch();
     },
     onError: (error) => {
       toast.error('Failed to delete model');
@@ -180,8 +187,10 @@ const Models = () => {
     onSuccess: () => {
       toast.success('Prompt template created successfully');
       queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['promptTemplates'] });
       setShowPromptForm(false);
       promptForm.reset();
+      refetch();
     },
     onError: (error) => {
       toast.error('Failed to create prompt template');
@@ -224,6 +233,12 @@ const Models = () => {
       modelId: selectedModel.id,
       data: data
     });
+  };
+
+  const handleDeleteModel = (modelId: string) => {
+    if (confirm('Are you sure you want to delete this model?')) {
+      deleteModelMutation.mutate(modelId);
+    }
   };
 
   return (
@@ -322,11 +337,7 @@ const Models = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this model?')) {
-                              deleteModelMutation.mutate(model.id);
-                            }
-                          }}
+                          onClick={() => handleDeleteModel(model.id)}
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
@@ -519,3 +530,4 @@ const Models = () => {
 };
 
 export default Models;
+

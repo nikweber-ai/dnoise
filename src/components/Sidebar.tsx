@@ -98,7 +98,7 @@ export function Sidebar() {
       <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-6 w-6" />
+            <img src={logoUrl} alt="Logo" className="h-6 w-6 object-contain" />
           ) : (
             <ImageIcon className="h-5 w-5 text-sidebar-primary" />
           )}

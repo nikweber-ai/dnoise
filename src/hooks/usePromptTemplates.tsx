@@ -4,7 +4,7 @@ import { api, PromptTemplate } from '@/services/api';
 import { toast } from 'sonner';
 
 export const usePromptTemplates = (modelId: string) => {
-  const { data: templates, isLoading, error } = useQuery({
+  const { data: templates, isLoading, error, refetch } = useQuery({
     queryKey: ['promptTemplates', modelId],
     queryFn: async () => {
       if (!modelId) return [];
@@ -17,11 +17,13 @@ export const usePromptTemplates = (modelId: string) => {
       return response.data || [];
     },
     enabled: !!modelId,
+    staleTime: 0, // Always refetch when requested
   });
 
   return {
     templates,
     isLoading,
     error,
+    refetch
   };
 };

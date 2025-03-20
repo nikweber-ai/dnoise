@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export const useModels = () => {
   const { user } = useAuth();
   const userId = user?.id;
+  const queryClient = useQueryClient();
 
   // Helper to get system settings
   const getSystemSettings = () => {
@@ -40,6 +41,7 @@ export const useModels = () => {
         return response.data || [];
       },
       enabled: !!user && user.isAdmin,
+      staleTime: 0, // Always refetch when requested
     });
   };
 
@@ -68,6 +70,7 @@ export const useModels = () => {
         return response.data || [];
       },
       enabled: !!userId,
+      staleTime: 0, // Always refetch when requested
     });
   };
 
@@ -80,7 +83,7 @@ export const useModels = () => {
 export const useModelSelection = () => {
   const { user } = useAuth();
   const { useUserModels } = useModels();
-  const { data: userModels, isLoading, error } = useUserModels();
+  const { data: userModels, isLoading, error, refetch } = useUserModels();
 
   const getDefaultModel = (): Model | undefined => {
     return userModels && userModels.length > 0 ? userModels[0] : undefined;
@@ -91,5 +94,6 @@ export const useModelSelection = () => {
     isLoading,
     error,
     getDefaultModel,
+    refetch
   };
 };

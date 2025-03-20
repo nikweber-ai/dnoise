@@ -73,14 +73,14 @@ type FormValues = z.infer<typeof formSchema>;
 
 const Generate = () => {
   const { user } = useAuth();
-  const { userModels, isLoading: isLoadingModels, getDefaultModel } = useModelSelection();
+  const { userModels, isLoading: isLoadingModels, getDefaultModel, refetch: refetchModels } = useModelSelection();
   const { generateImage, isGenerating } = useImageGeneration();
   const { toggleFavorite } = useFavorites();
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
 
   // Get prompt templates for the selected model
-  const { templates: promptTemplates, isLoading: isLoadingTemplates } = usePromptTemplates(
+  const { templates: promptTemplates, isLoading: isLoadingTemplates, refetch: refetchTemplates } = usePromptTemplates(
     selectedModel?.id || ''
   );
 
@@ -99,13 +99,21 @@ const Generate = () => {
     },
   });
 
+  // Refetch models when the component mounts
+  useEffect(() => {
+    refetchModels();
+  }, [refetchModels]);
+
+  // Set default model when userModels are loaded
   useEffect(() => {
     if (userModels && userModels.length > 0) {
       const defaultModel = getDefaultModel();
       if (defaultModel) {
         form.setValue('model', defaultModel.id);
-        form.setValue('prompt', defaultModel.defaultPrompt || '');
         setSelectedModel(defaultModel);
+        if (defaultModel.defaultPrompt && form.getValues('prompt') === '') {
+          form.setValue('prompt', defaultModel.defaultPrompt);
+        }
       }
     }
   }, [userModels, getDefaultModel, form]);
@@ -113,8 +121,18 @@ const Generate = () => {
   const handleModelChange = (modelId: string) => {
     const model = userModels?.find(m => m.id === modelId) || null;
     setSelectedModel(model);
-    if (model?.defaultPrompt && form.getValues('prompt') === '') {
+    
+    // Reset prompt if we have a default prompt and the current prompt is empty or was the previous model's default
+    const currentPrompt = form.getValues('prompt');
+    const previousModelPrompt = selectedModel?.defaultPrompt || '';
+    
+    if (model?.defaultPrompt && (currentPrompt === '' || currentPrompt === previousModelPrompt)) {
       form.setValue('prompt', model.defaultPrompt);
+    }
+    
+    // Refetch templates when model changes
+    if (model) {
+      refetchTemplates();
     }
   };
 
