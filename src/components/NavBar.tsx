@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, Moon, Sun } from 'lucide-react';
+import { X, User, LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -46,16 +47,6 @@ export const NavBar: React.FC<NavBarProps> = ({ onToggleSidebar }) => {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
-            )}
-            {user && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mr-2 hidden md:flex"
-                onClick={onToggleSidebar}
-              >
-                <Menu size={20} />
               </Button>
             )}
             <Link to="/" className="flex items-center space-x-2">

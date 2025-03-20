@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { NavBar } from '@/components/NavBar';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,15 +11,10 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  const handleToggleSidebar = () => {
-    console.log('Sidebar toggle clicked, but feature disabled');
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <NavBar onToggleSidebar={handleToggleSidebar} />
+      <NavBar onToggleSidebar={() => {}} />
       <div className="flex flex-1 overflow-hidden">
         {user && (
           <Sidebar />

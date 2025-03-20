@@ -64,7 +64,6 @@ export function Sidebar() {
     <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background hidden md:flex">
       <div className="p-6">
         <h2 className="text-xl font-semibold text-sidebar-primary">GenHub</h2>
-        <p className="text-xs text-sidebar-foreground">AI Image Generator</p>
       </div>
 
       <div className="flex-1 px-3 py-2">
