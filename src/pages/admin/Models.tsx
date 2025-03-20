@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -97,15 +96,14 @@ const Models = () => {
 
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormValues) => {
-      // This would be an actual API call in a real app
       console.log('Creating model:', data);
       const newModel: Model = { 
         id: String(Date.now()),
-        name: data.name, // Ensure name is provided
-        description: data.description,
+        name: data.name,
+        description: data.description || '',
         replicateModelId: data.replicateModelId,
-        defaultPrompt: data.defaultPrompt,
-        lora_weights: data.lora_weights,
+        defaultPrompt: data.defaultPrompt || '',
+        lora_weights: data.lora_weights || '',
         promptTemplates: [],
       };
       return newModel;
@@ -124,15 +122,14 @@ const Models = () => {
 
   const updateModelMutation = useMutation({
     mutationFn: async (data: { id: string; formData: ModelFormValues }) => {
-      // This would be an actual API call in a real app
       console.log('Updating model:', data);
       const updatedModel: Model = {
         id: data.id,
-        name: data.formData.name, // Ensure name is provided
-        description: data.formData.description,
+        name: data.formData.name,
+        description: data.formData.description || '',
         replicateModelId: data.formData.replicateModelId,
-        defaultPrompt: data.formData.defaultPrompt,
-        lora_weights: data.formData.lora_weights,
+        defaultPrompt: data.formData.defaultPrompt || '',
+        lora_weights: data.formData.lora_weights || '',
         promptTemplates: models?.data?.find(m => m.id === data.id)?.promptTemplates || [],
       };
       return updatedModel;
@@ -151,7 +148,6 @@ const Models = () => {
 
   const deleteModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
-      // This would be an actual API call in a real app
       console.log('Deleting model:', modelId);
       return modelId;
     },
@@ -167,13 +163,12 @@ const Models = () => {
 
   const createPromptTemplateMutation = useMutation({
     mutationFn: async ({ modelId, data }: { modelId: string, data: PromptTemplateFormValues }) => {
-      // This would be an actual API call in a real app
       console.log('Creating prompt template for model:', modelId, data);
       const newTemplate: PromptTemplate = {
         id: String(Date.now()),
         modelId: modelId,
-        name: data.name, // Ensure name is provided
-        prompt: data.prompt, // Ensure prompt is provided
+        name: data.name,
+        prompt: data.prompt,
         negativePrompt: data.negativePrompt,
       };
       return { modelId, template: newTemplate };
@@ -343,7 +338,6 @@ const Models = () => {
         </CardContent>
       </Card>
 
-      {/* Model Form Dialog */}
       <Dialog open={showModelForm} onOpenChange={setShowModelForm}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -457,7 +451,6 @@ const Models = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Prompt Template Form Dialog */}
       <Dialog open={showPromptForm} onOpenChange={setShowPromptForm}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>

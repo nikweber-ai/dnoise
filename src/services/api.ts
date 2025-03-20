@@ -66,7 +66,7 @@ export interface User {
   email: string;
   name?: string;
   isAdmin: boolean;
-  apiKey?: string; // Not required for admin
+  apiKey?: string;
   models?: string[]; // Models the user has access to
   highlightColor?: string; // Added for user interface customization
   credits?: number; // Making this optional since we're phasing it out

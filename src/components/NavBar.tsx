@@ -60,7 +60,7 @@ export const NavBar: React.FC<NavBarProps> = ({ onToggleSidebar }) => {
               </Button>
             )}
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold animate-slide-up">FluxGen</span>
+              <span className="text-xl font-bold animate-slide-up">GenHub</span>
             </Link>
           </div>
 
