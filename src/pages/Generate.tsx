@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -136,6 +137,7 @@ const Generate = () => {
   };
 
   const handleUseSeed = (seed: number) => {
+    // Fix for TS2345 error - ensure seed is correctly typed
     form.setValue('seed', seed.toString());
     form.setValue('randomizeSeed', false);
   };
