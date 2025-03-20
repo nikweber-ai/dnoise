@@ -3,7 +3,8 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useModelSelection } from '@/hooks/useModels';
 import { useImageGeneration } from '@/hooks/useImageGeneration';
-import { CreditCard, Clock, Image as ImageIcon, Zap, User, UserPlus } from 'lucide-react';
+import { useFavorites } from '@/hooks/useFavorites';
+import { CreditCard, Clock, Image as ImageIcon, Zap, User, UserPlus, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -12,7 +13,9 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { userModels, isLoading: isLoadingModels } = useModelSelection();
   const { useGenerationHistory } = useImageGeneration();
+  const { toggleFavorite, useFavoriteImages } = useFavorites();
   const { data: generationHistory, isLoading: isLoadingHistory } = useGenerationHistory();
+  const { data: favoriteImages, isLoading: isLoadingFavorites } = useFavoriteImages();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -82,13 +85,17 @@ const Dashboard = () => {
         
         <Card className="bg-card/40 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Account Status</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Favorite Images</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Active</div>
+            <div className="text-2xl font-bold">
+              {isLoadingFavorites ? '...' : favoriteImages?.length || 0}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {user?.isAdmin ? 'Administrator account' : 'Standard account'}
+              {favoriteImages && favoriteImages.length > 0 
+                ? `Last favorited: ${formatDate(favoriteImages[0].createdAt)}`
+                : 'No favorites yet'}
             </p>
           </CardContent>
         </Card>
@@ -118,6 +125,12 @@ const Dashboard = () => {
                       alt={image.prompt} 
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
+                    <button
+                      onClick={() => toggleFavorite(image.id)}
+                      className="absolute top-2 right-2 p-1 bg-black/50 rounded-full transition-colors hover:bg-black/70"
+                    >
+                      <Star className={`h-4 w-4 ${image.isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'}`} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -154,6 +167,13 @@ const Dashboard = () => {
               <Button variant="outline" className="w-full">
                 <Clock className="mr-2 h-4 w-4" />
                 View Generation History
+              </Button>
+            </Link>
+            
+            <Link to="/favorites">
+              <Button variant="outline" className="w-full">
+                <Star className="mr-2 h-4 w-4" />
+                View Favorites
               </Button>
             </Link>
             
