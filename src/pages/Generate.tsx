@@ -137,8 +137,9 @@ const Generate = () => {
   };
 
   const handleUseSeed = (seed: number) => {
-    // Fix for TS2345 error - ensure seed is correctly typed
-    form.setValue('seed', seed.toString());
+    // The form schema expects seed to be either a number or an empty string
+    // We need to set it as a number directly, not as a string
+    form.setValue('seed', seed);
     form.setValue('randomizeSeed', false);
   };
 
