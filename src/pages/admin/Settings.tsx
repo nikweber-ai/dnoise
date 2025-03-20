@@ -34,6 +34,8 @@ const apiFormSchema = z.object({
 
 const systemFormSchema = z.object({
   defaultCredits: z.coerce.number().int().min(0, 'Default credits cannot be negative'),
+  monthlyCredits: z.coerce.number().int().min(0, 'Monthly credits cannot be negative'),
+  creditRolloverEnabled: z.boolean(),
   creditResetDay: z.coerce.number().int().min(1, 'Day must be between 1 and 31').max(31, 'Day must be between 1 and 31'),
   maxImagesPerBatch: z.coerce.number().int().min(1, 'Must allow at least 1 image per batch'),
   emailNotificationsEnabled: z.boolean(),
@@ -57,7 +59,9 @@ const Settings = () => {
   const systemForm = useForm<SystemFormValues>({
     resolver: zodResolver(systemFormSchema),
     defaultValues: {
-      defaultCredits: 100,
+      defaultCredits: 0, // New users start with 0 credits
+      monthlyCredits: 100, // Monthly rollover credits
+      creditRolloverEnabled: true, // Enable credit rollover by default
       creditResetDay: 1,
       maxImagesPerBatch: 4,
       emailNotificationsEnabled: true,
@@ -74,6 +78,10 @@ const Settings = () => {
   const onSystemSubmit = (data: SystemFormValues) => {
     toast.success('System settings updated successfully');
     console.log('System settings:', data);
+    
+    // In a real implementation, this would update a database
+    // For now, we'll save to localStorage for demo purposes
+    localStorage.setItem('systemSettings', JSON.stringify(data));
   };
 
   return (
@@ -174,7 +182,7 @@ const Settings = () => {
                           <Input type="number" {...field} />
                         </FormControl>
                         <FormDescription>
-                          Credits for new users
+                          Initial credits for new users
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -194,6 +202,46 @@ const Settings = () => {
                           Day of month to reset credits
                         </FormDescription>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid gap-4 grid-cols-2">
+                  <FormField
+                    control={systemForm.control}
+                    name="monthlyCredits"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Monthly Credits</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Credits given monthly on reset day
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={systemForm.control}
+                    name="creditRolloverEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Enable Credit Rollover</FormLabel>
+                          <FormDescription>
+                            Automatically give credits on reset day
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
@@ -275,7 +323,7 @@ const Settings = () => {
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
-                        </FormControl>
+                        </Control>
                       </FormItem>
                     )}
                   />

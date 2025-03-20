@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  resetUserCredits: (userId: string, amount: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +28,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Function to check if credits should be reset based on system settings
+  const checkCreditReset = () => {
+    if (!user) return;
+    
+    try {
+      // Get system settings from localStorage
+      const settingsString = localStorage.getItem('systemSettings');
+      if (!settingsString) return;
+      
+      const settings = JSON.parse(settingsString);
+      if (!settings.creditRolloverEnabled) return;
+      
+      const now = new Date();
+      const resetDay = settings.creditResetDay || 1;
+      const monthlyCredits = settings.monthlyCredits || 0;
+      
+      // Create a date object for when credits should next reset
+      const nextResetDate = new Date(user.creditsReset);
+      
+      // If it's time to reset credits
+      if (now >= nextResetDate) {
+        // Set the next reset date to be next month
+        const newResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+        
+        // Update the user with new credits and reset date
+        const updatedUser = {
+          ...user,
+          credits: monthlyCredits,
+          creditsReset: newResetDate.toISOString()
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        toast.info(`Your credits have been reset to ${monthlyCredits}`);
+      }
+    } catch (error) {
+      console.error('Error checking credit reset:', error);
+    }
+  };
 
   // Check if user is logged in on mount
   useEffect(() => {
@@ -45,6 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkAuth();
   }, []);
+
+  // Check for credit reset whenever the user object changes
+  useEffect(() => {
+    if (user) {
+      checkCreditReset();
+    }
+  }, [user]);
 
   // For demo purposes, we'll use localStorage
   // In a real app, you would use a proper authentication system
@@ -66,6 +114,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (foundUser) {
         const { password, ...userWithoutPassword } = foundUser;
+        
+        // Check credit reset before saving user
+        const settingsString = localStorage.getItem('systemSettings');
+        if (settingsString) {
+          const settings = JSON.parse(settingsString);
+          if (settings.creditRolloverEnabled) {
+            const now = new Date();
+            const resetDay = settings.creditResetDay || 1;
+            
+            // Set the next reset date to be this month or next month
+            let nextResetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
+            if (now > nextResetDate) {
+              nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+            }
+            
+            userWithoutPassword.creditsReset = nextResetDate.toISOString();
+          }
+        }
+        
         localStorage.setItem('user', JSON.stringify(userWithoutPassword));
         setUser(userWithoutPassword);
         toast.success('Signed in successfully');
@@ -90,13 +157,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Demo registration - in a real app, you would call an API
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Create a new user with 0 credits
+      // Get default credits from system settings
+      const settingsString = localStorage.getItem('systemSettings');
+      let defaultCredits = 0;
+      let nextResetDate = new Date();
+      nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+      
+      if (settingsString) {
+        const settings = JSON.parse(settingsString);
+        defaultCredits = settings.defaultCredits || 0;
+        
+        if (settings.creditRolloverEnabled) {
+          const now = new Date();
+          const resetDay = settings.creditResetDay || 1;
+          
+          // Set the next reset date
+          nextResetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
+          if (now > nextResetDate) {
+            nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+          }
+        }
+      }
+      
+      // Create a new user with configured default credits
       const newUser = {
         id: Math.random().toString(36).substring(2, 11),
         email,
         isAdmin: false,
-        credits: 0, // New users start with 0 credits
-        creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        credits: defaultCredits, 
+        creditsReset: nextResetDate.toISOString(),
       };
       
       localStorage.setItem('user', JSON.stringify(newUser));
@@ -139,6 +228,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Admin function to reset a user's credits manually
+  const resetUserCredits = async (userId: string, amount: number) => {
+    if (!user?.isAdmin) {
+      toast.error('Only administrators can reset user credits');
+      return;
+    }
+    
+    try {
+      // In a real app, this would be an API call
+      // For demo, we'll just update if it's the current user
+      if (user.id === userId) {
+        const updatedUser = {
+          ...user,
+          credits: amount
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        toast.success(`Credits updated to ${amount}`);
+      } else {
+        // In a real app, this would update the credits of a different user
+        toast.success(`Credits for user ${userId} updated to ${amount}`);
+      }
+    } catch (error) {
+      console.error('Reset credits error:', error);
+      toast.error('An error occurred while updating credits');
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -147,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
+    resetUserCredits,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -17,6 +17,12 @@ const Dashboard = () => {
   const { data: generationHistory, isLoading: isLoadingHistory } = useGenerationHistory();
   const { data: favoriteImages, isLoading: isLoadingFavorites } = useFavoriteImages();
 
+  // Get system settings from localStorage if available
+  const systemSettings = React.useMemo(() => {
+    const settings = localStorage.getItem('systemSettings');
+    return settings ? JSON.parse(settings) : null;
+  }, []);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -24,6 +30,26 @@ const Dashboard = () => {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  // Calculate next credit reset date
+  const getNextResetDate = () => {
+    if (!systemSettings?.creditRolloverEnabled) {
+      return user?.creditsReset || 'Not scheduled';
+    }
+    
+    const now = new Date();
+    const resetDay = systemSettings?.creditResetDay || 1;
+    
+    // Create date for this month's reset day
+    let resetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
+    
+    // If we're past this month's reset day, move to next month
+    if (now > resetDate) {
+      resetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+    }
+    
+    return formatDate(resetDate.toISOString());
   };
 
   return (
@@ -44,8 +70,15 @@ const Dashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{user?.credits || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Resets on {user?.creditsReset ? formatDate(user.creditsReset) : 'N/A'}
+              {systemSettings?.creditRolloverEnabled ? 
+                `Next rollover: ${getNextResetDate()}` : 
+                `Credits reset: ${user?.creditsReset ? formatDate(user.creditsReset) : 'N/A'}`}
             </p>
+            {systemSettings?.creditRolloverEnabled && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {systemSettings.monthlyCredits} credits per month
+              </p>
+            )}
           </CardContent>
         </Card>
         
