@@ -64,9 +64,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             id: '1',
             email: 'user@example.com',
             isAdmin: false,
-            credits: 100,
             models: ['1', '2'],
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            highlightColor: '#9b87f5'
           };
           setUser(mockUser);
           localStorage.setItem('user', JSON.stringify(mockUser));
@@ -77,9 +77,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             email: 'admin@example.com',
             isAdmin: true,
             apiKey: 'r8_example_admin_api_key',
-            credits: 1000,
             models: ['1', '2', '3', '4'],
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            highlightColor: '#0FA0CE'
           };
           setUser(mockAdmin);
           localStorage.setItem('user', JSON.stringify(mockAdmin));
@@ -104,9 +104,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           email: email,
           name: name,
           isAdmin: false,
-          credits: 100,
           models: ['1', '2'],
-          creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+          creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          highlightColor: '#9b87f5'
         };
         setUser(mockUser);
         localStorage.setItem('user', JSON.stringify(mockUser));

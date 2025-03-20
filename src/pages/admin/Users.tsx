@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -40,7 +39,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  CheckboxItem,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -353,3 +351,4 @@ const Users = () => {
 };
 
 export default Users;
+

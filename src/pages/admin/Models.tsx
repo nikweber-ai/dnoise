@@ -56,6 +56,7 @@ const modelFormSchema = z.object({
 const promptTemplateSchema = z.object({
   name: z.string().min(1, 'Template name is required'),
   prompt: z.string().min(1, 'Prompt is required'),
+  negativePrompt: z.string().optional(),
 });
 
 type ModelFormValues = z.infer<typeof modelFormSchema>;
@@ -90,14 +91,23 @@ const Models = () => {
     defaultValues: {
       name: '',
       prompt: '',
+      negativePrompt: '',
     },
   });
 
   const createModelMutation = useMutation({
-    mutationFn: async (data: Model) => {
+    mutationFn: async (data: ModelFormValues) => {
       // This would be an actual API call in a real app
       console.log('Creating model:', data);
-      const newModel = { ...data, id: String(Date.now()) };
+      const newModel: Model = { 
+        id: String(Date.now()),
+        name: data.name, // Ensure name is provided
+        description: data.description,
+        replicateModelId: data.replicateModelId,
+        defaultPrompt: data.defaultPrompt,
+        lora_weights: data.lora_weights,
+        promptTemplates: [],
+      };
       return newModel;
     },
     onSuccess: () => {
@@ -113,10 +123,19 @@ const Models = () => {
   });
 
   const updateModelMutation = useMutation({
-    mutationFn: async (data: Model) => {
+    mutationFn: async (data: { id: string; formData: ModelFormValues }) => {
       // This would be an actual API call in a real app
       console.log('Updating model:', data);
-      return data;
+      const updatedModel: Model = {
+        id: data.id,
+        name: data.formData.name, // Ensure name is provided
+        description: data.formData.description,
+        replicateModelId: data.formData.replicateModelId,
+        defaultPrompt: data.formData.defaultPrompt,
+        lora_weights: data.formData.lora_weights,
+        promptTemplates: models?.data?.find(m => m.id === data.id)?.promptTemplates || [],
+      };
+      return updatedModel;
     },
     onSuccess: () => {
       toast.success('Model updated successfully');
@@ -147,10 +166,17 @@ const Models = () => {
   });
 
   const createPromptTemplateMutation = useMutation({
-    mutationFn: async ({ modelId, data }: { modelId: string, data: PromptTemplate }) => {
+    mutationFn: async ({ modelId, data }: { modelId: string, data: PromptTemplateFormValues }) => {
       // This would be an actual API call in a real app
       console.log('Creating prompt template for model:', modelId, data);
-      return { modelId, data };
+      const newTemplate: PromptTemplate = {
+        id: String(Date.now()),
+        modelId: modelId,
+        name: data.name, // Ensure name is provided
+        prompt: data.prompt, // Ensure prompt is provided
+        negativePrompt: data.negativePrompt,
+      };
+      return { modelId, template: newTemplate };
     },
     onSuccess: () => {
       toast.success('Prompt template created successfully');
@@ -185,16 +211,11 @@ const Models = () => {
   const onModelSubmit = (data: ModelFormValues) => {
     if (editModelId) {
       updateModelMutation.mutate({
-        ...data,
         id: editModelId,
-        promptTemplates: models?.data?.find(m => m.id === editModelId)?.promptTemplates || [],
+        formData: data
       });
     } else {
-      createModelMutation.mutate({
-        ...data,
-        id: String(Date.now()),
-        promptTemplates: [],
-      });
+      createModelMutation.mutate(data);
     }
   };
 
@@ -203,11 +224,7 @@ const Models = () => {
     
     createPromptTemplateMutation.mutate({
       modelId: selectedModel.id,
-      data: {
-        ...data,
-        id: String(Date.now()),
-        modelId: selectedModel.id,
-      },
+      data: data
     });
   };
 

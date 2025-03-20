@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useModelSelection } from '@/hooks/useModels';
@@ -64,21 +63,18 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card/40 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Credits Available</CardTitle>
+            <CardTitle className="text-sm font-medium">API Key Status</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{user?.credits || 0}</div>
+            <div className="text-2xl font-bold">{user?.apiKey ? 'Set' : 'Not Set'}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {systemSettings?.creditRolloverEnabled ? 
-                `Next rollover: ${getNextResetDate()}` : 
-                `Credits reset: ${user?.creditsReset ? formatDate(user.creditsReset) : 'N/A'}`}
+              {user?.apiKey 
+                ? 'Your Replicate API key is configured' 
+                : user?.isAdmin 
+                  ? 'Optional for admin users' 
+                  : 'Set your API key in profile settings'}
             </p>
-            {systemSettings?.creditRolloverEnabled && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {systemSettings.monthlyCredits} credits per month
-              </p>
-            )}
           </CardContent>
         </Card>
         

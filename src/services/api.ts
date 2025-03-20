@@ -1,3 +1,4 @@
+
 // Mock API service for the Replicate API interaction
 // This would be replaced with actual API calls in a production app
 
@@ -68,6 +69,7 @@ export interface User {
   apiKey?: string; // Not required for admin
   models?: string[]; // Models the user has access to
   highlightColor?: string; // Added for user interface customization
+  credits?: number; // Making this optional since we're phasing it out
   creditsReset?: string; // Keeping for backward compatibility
 }
 
