@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut, Moon, Sun } from 'lucide-react';
@@ -60,7 +59,7 @@ export const NavBar: React.FC<NavBarProps> = ({ onToggleSidebar }) => {
               </Button>
             )}
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold animate-slide-up">GenHub</span>
+              <span className="text-xl font-bold animate-slide-up text-primary">GenHub</span>
             </Link>
           </div>
 
@@ -124,7 +123,6 @@ export const NavBar: React.FC<NavBarProps> = ({ onToggleSidebar }) => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {user && mobileMenuOpen && (
         <div className="md:hidden animate-fade-in border-b">
           <div className="space-y-1 px-4 py-3">
