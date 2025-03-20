@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/services/api';
 
@@ -11,7 +12,14 @@ interface AuthContextType {
   isAdmin: boolean;
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, password: string) => Promise<boolean>;
-  updateCurrentUser: (userData: Partial<User>) => void; // Added this function
+  updateCurrentUser: (userData: Partial<User>) => void;
+  // Add these properties to match usage in components
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, name?: string) => Promise<boolean>;
+  signOut: () => void;
+  loading: boolean;
+  error: string | null;
+  creditsReset?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +46,7 @@ const getStoredUser = (): User | null => {
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(getStoredUser());
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -46,6 +55,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     // Mock authentication
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -55,7 +65,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             email: 'user@example.com',
             isAdmin: false,
             credits: 100,
-            models: ['1', '2']
+            models: ['1', '2'],
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
           };
           setUser(mockUser);
           localStorage.setItem('user', JSON.stringify(mockUser));
@@ -67,12 +78,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             isAdmin: true,
             apiKey: 'r8_example_admin_api_key',
             credits: 1000,
-            models: ['1', '2', '3', '4']
+            models: ['1', '2', '3', '4'],
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
           };
           setUser(mockAdmin);
           localStorage.setItem('user', JSON.stringify(mockAdmin));
           resolve(true);
         } else {
+          setError('Invalid email or password');
           resolve(false);
         }
         setIsLoading(false);
@@ -82,6 +95,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const register = async (email: string, password: string, name?: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     // Mock registration
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -91,7 +105,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           name: name,
           isAdmin: false,
           credits: 100,
-          models: ['1', '2']
+          models: ['1', '2'],
+          creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
         };
         setUser(mockUser);
         localStorage.setItem('user', JSON.stringify(mockUser));
@@ -108,6 +123,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const forgotPassword = async (email: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     // Mock forgot password
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -120,6 +136,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const resetPassword = async (token: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     // Mock reset password
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -148,7 +165,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     isAdmin: user?.isAdmin || false,
     forgotPassword,
     resetPassword,
-    updateCurrentUser, // Add this to the context value
+    updateCurrentUser,
+    // Alias functions to match component usage
+    signIn: login,
+    signUp: register,
+    signOut: logout,
+    loading: isLoading,
+    error,
+    creditsReset: user?.creditsReset,
   };
 
   return (

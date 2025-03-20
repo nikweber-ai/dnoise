@@ -1,4 +1,3 @@
-
 // Mock API service for the Replicate API interaction
 // This would be replaced with actual API calls in a production app
 
@@ -69,6 +68,7 @@ export interface User {
   apiKey?: string; // Added for Replicate API key
   credits?: number; // Added for user credits
   models?: string[]; // Added for allowed models
+  creditsReset?: string; // Added for credits reset date
 }
 
 export interface ApiResponse<T> {

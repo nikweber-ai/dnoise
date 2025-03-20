@@ -17,7 +17,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const ForgotPassword = () => {
-  const { resetPassword, loading, error } = useAuth();
+  const { forgotPassword, loading, error } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   
   const form = useForm<FormValues>({
@@ -28,7 +28,8 @@ const ForgotPassword = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
-    await resetPassword(data.email);
+    // Using the token "reset" as a mock token for the demo
+    await forgotPassword(data.email);
     setSubmitted(true);
   };
 
