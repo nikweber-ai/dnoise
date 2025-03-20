@@ -1,5 +1,5 @@
 
-// Mock API service for the Comfy Deploy API interaction
+// Mock API service for the Replicate API interaction
 // This would be replaced with actual API calls in a production app
 
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +10,8 @@ export interface Model {
   description?: string;
   defaultPrompt?: string;
   promptTemplates?: PromptTemplate[];
+  replicateModelId?: string; // Added for Replicate
+  replicateVersionId?: string; // Added for Replicate
 }
 
 export interface PromptTemplate {
@@ -23,12 +25,23 @@ export interface PromptTemplate {
 export interface GenerationParams {
   prompt: string;
   negativePrompt?: string;
-  width: number;
-  height: number;
-  loraStrength?: number;
+  width?: number;
+  height?: number;
   seed?: number | null;
-  batchSize: number;
+  batchSize?: number;
   model: string;
+  // Replicate specific parameters
+  image?: string; // For img2img
+  hf_lora?: string;
+  lora_scale?: number;
+  num_outputs?: number;
+  aspect_ratio?: string;
+  output_format?: string;
+  guidance_scale?: number;
+  output_quality?: number;
+  prompt_strength?: number;
+  num_inference_steps?: number;
+  disable_safety_checker?: boolean;
 }
 
 export interface GeneratedImage {
@@ -36,9 +49,9 @@ export interface GeneratedImage {
   url: string;
   prompt: string;
   negativePrompt?: string;
-  width: number;
-  height: number;
-  seed: number;
+  width?: number;
+  height?: number;
+  seed?: number;
   model: string;
   createdAt: string;
   userId: string;
@@ -50,9 +63,7 @@ export interface User {
   email: string;
   name?: string;
   isAdmin: boolean;
-  credits: number;
-  creditsReset: string;
-  models: string[];
+  apiKey?: string; // Added for Replicate API key
 }
 
 export interface ApiResponse<T> {
@@ -68,6 +79,8 @@ const mockModels: Model[] = [
     name: 'Flux Dev 1.0',
     description: 'General purpose image generation model',
     defaultPrompt: 'a beautiful photograph of a landscape, high quality, 8k',
+    replicateModelId: 'lucataco/flux-dev-lora',
+    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
     promptTemplates: [
       {
         id: '1',
@@ -88,6 +101,8 @@ const mockModels: Model[] = [
     name: 'Flux Dev 2.0',
     description: 'Enhanced image generation with better coherence',
     defaultPrompt: 'a detailed portrait of a person, professional lighting, studio quality',
+    replicateModelId: 'lucataco/flux-dev-lora',
+    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
     promptTemplates: [
       {
         id: '3',
@@ -105,40 +120,45 @@ const mockModels: Model[] = [
   },
   {
     id: '3',
-    name: 'Flux Character',
-    description: 'Specialized in character creation',
-    defaultPrompt: 'character concept art, full body, detailed features, high quality',
+    name: 'Frosting Lane',
+    description: 'Whimsical and dreamy illustration style',
+    defaultPrompt: 'fantasy illustration, dreamy, magical, colorful',
+    replicateModelId: 'lucataco/flux-dev-lora',
+    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
+    hf_lora: 'alvdansen/frosting_lane_flux',
     promptTemplates: [
       {
         id: '5',
         name: 'Fantasy Character',
-        prompt: 'fantasy character concept art, full body, detailed features, ornate clothing, magical elements',
+        prompt: 'fantasy character concept art, dreamy style, colorful, magical elements, frstingln',
         modelId: '3'
       },
       {
         id: '6',
-        name: 'Sci-Fi Character',
-        prompt: 'sci-fi character, futuristic outfit, cyberpunk style, detailed tech elements',
+        name: 'Magical Scene',
+        prompt: 'magical fantasy scene, dreamy colors, enchanted forest, frstingln style',
         modelId: '3'
       }
     ]
   },
   {
     id: '4',
-    name: 'Flux Landscape',
-    description: 'Optimized for landscapes and environments',
-    defaultPrompt: 'epic landscape scene, volumetric lighting, detailed, 8k, cinematic',
+    name: 'Realistic Photography',
+    description: 'Photorealistic image generation',
+    defaultPrompt: 'a photorealistic image of a landscape, perfect lighting, 8k',
+    replicateModelId: 'lucataco/flux-dev-lora',
+    replicateVersionId: '091495765fa5ef2725a175a57b276ec30dc9d39c22d30410f2ede68a3eab66b3',
     promptTemplates: [
       {
         id: '7',
-        name: 'Epic Vista',
-        prompt: 'epic landscape vista, dramatic lighting, fog, mountains, 8k detail, cinematic',
+        name: 'Nature Shot',
+        prompt: 'cinematic photography of nature, perfect lighting, ultra realistic, 8k detail',
         modelId: '4'
       },
       {
         id: '8',
         name: 'Urban Scene',
-        prompt: 'detailed urban cityscape, architectural elements, street level, atmospheric lighting',
+        prompt: 'photorealistic urban cityscape, golden hour lighting, perfect exposure, ultra detailed',
         modelId: '4'
       }
     ]
@@ -149,22 +169,18 @@ const mockUsers: User[] = [
   {
     id: '1',
     email: 'user@example.com',
-    credits: 0, // Starting with 0 credits instead of 100
-    creditsReset: '2023-06-01',
     isAdmin: false,
-    models: ['1', '2']
+    apiKey: '',
   },
   {
     id: '2',
     email: 'admin@example.com',
-    credits: 500, // Admin still has credits for testing
-    creditsReset: '2023-06-01',
     isAdmin: true,
-    models: ['1', '2', '3', '4']
+    apiKey: 'r8_example_admin_api_key',
   }
 ];
 
-// Mock generated images with favorite status
+// Mock generated images
 const mockImages: GeneratedImage[] = [
   {
     id: '1',
@@ -221,13 +237,9 @@ export const api = {
   },
 
   getUserModels: async (userId: string): Promise<ApiResponse<Model[]>> => {
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) {
-      return { success: false, error: 'User not found' };
-    }
-    
-    const userModels = mockModels.filter(model => user.models.includes(model.id));
-    return getMockData(userModels);
+    // In this implementation, all users can access all models
+    // In a real app, you might want to restrict access based on user role
+    return getMockData(mockModels);
   },
 
   getPromptTemplates: async (modelId: string): Promise<ApiResponse<PromptTemplate[]>> => {
@@ -262,10 +274,20 @@ export const api = {
     const updatedUser = { ...mockUsers[userIndex], ...data };
     mockUsers[userIndex] = updatedUser;
     
+    // In a real app, this would update a database
+    // For now, we'll also update localStorage for the current user
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const currentUser = JSON.parse(storedUser);
+      if (currentUser.id === userId) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    }
+    
     return { success: true, data: updatedUser };
   },
 
-  // Image generation functions
+  // Image generation with Replicate
   generateImage: async (params: GenerationParams): Promise<ApiResponse<GeneratedImage[]>> => {
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
@@ -273,13 +295,41 @@ export const api = {
     }
     
     const user = JSON.parse(storedUser);
-    if (user.credits <= 0) {
-      return { success: false, error: 'Insufficient credits' };
+    if (!user.apiKey) {
+      return { success: false, error: 'Replicate API key not set. Please add your API key in your profile settings.' };
     }
     
+    const selectedModel = mockModels.find(m => m.id === params.model);
+    if (!selectedModel) {
+      return { success: false, error: 'Selected model not found' };
+    }
+
+    // In a real implementation, this would make an actual API call to Replicate
+    // For this demo, we'll simulate the response
+    console.log('Would call Replicate API with:', {
+      model: selectedModel.replicateModelId,
+      version: selectedModel.replicateVersionId,
+      apiKey: user.apiKey.substring(0, 5) + '...',
+      input: {
+        prompt: params.prompt,
+        seed: params.seed,
+        num_outputs: params.num_outputs || params.batchSize || 1,
+        hf_lora: selectedModel.hf_lora || params.hf_lora,
+        lora_scale: params.lora_scale || 0.8,
+        aspect_ratio: params.aspect_ratio || '1:1',
+        output_format: params.output_format || 'webp',
+        guidance_scale: params.guidance_scale || 3.5,
+        output_quality: params.output_quality || 80,
+        prompt_strength: params.prompt_strength || 0.8,
+        num_inference_steps: params.num_inference_steps || 28,
+        disable_safety_checker: params.disable_safety_checker || false,
+      }
+    });
+
     // Mock image generation
     const images: GeneratedImage[] = [];
-    for (let i = 0; i < params.batchSize; i++) {
+    const numOutputs = params.num_outputs || params.batchSize || 1;
+    for (let i = 0; i < numOutputs; i++) {
       const randomSeed = params.seed !== null && params.seed !== undefined 
         ? params.seed 
         : Math.floor(Math.random() * 1000000);
@@ -308,11 +358,6 @@ export const api = {
         isFavorite: false
       });
     }
-    
-    // Deduct credits (1 credit per image)
-    const updatedCredits = user.credits - params.batchSize;
-    user.credits = updatedCredits;
-    localStorage.setItem('user', JSON.stringify(user));
     
     // Save generated images to history
     const history = localStorage.getItem('generationHistory');
