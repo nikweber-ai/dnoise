@@ -59,6 +59,7 @@ export interface GeneratedImage {
   createdAt: string;
   userId: string;
   isFavorite?: boolean;
+  generationParams?: GenerationParams;
 }
 
 export interface User {
@@ -182,7 +183,7 @@ const mockUsers: User[] = [
     isAdmin: false,
     apiKey: '',
     models: ['1', '2'],
-    highlightColor: '#9b87f5' // Default purple
+    highlightColor: '#ff653a' // Default highlight color
   },
   {
     id: '2',
@@ -190,7 +191,7 @@ const mockUsers: User[] = [
     isAdmin: true,
     apiKey: '', // Admin doesn't need an API key by default
     models: ['1', '2', '3', '4'],
-    highlightColor: '#0FA0CE' // Blue for admin
+    highlightColor: '#ff653a' // Default highlight color for admin
   }
 ];
 
@@ -251,9 +252,17 @@ export const api = {
   },
 
   getUserModels: async (userId: string): Promise<ApiResponse<Model[]>> => {
-    // In this implementation, all users can access all models
-    // In a real app, you might want to restrict access based on user role
-    return getMockData(mockModels);
+    const user = mockUsers.find(u => u.id === userId);
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    // Filter models based on user's allowed models
+    const allowedModels = mockModels.filter(model => 
+      user.models?.includes(model.id) || user.isAdmin
+    );
+    
+    return { success: true, data: allowedModels };
   },
 
   getPromptTemplates: async (modelId: string): Promise<ApiResponse<PromptTemplate[]>> => {
@@ -263,6 +272,63 @@ export const api = {
     }
     
     return { success: true, data: model.promptTemplates || [] };
+  },
+
+  // New model management functions
+  createModel: async (model: Model): Promise<ApiResponse<Model>> => {
+    // In a real app, this would interact with a database
+    mockModels.push(model);
+    return { success: true, data: model };
+  },
+
+  updateModel: async (modelId: string, updatedModel: Partial<Model>): Promise<ApiResponse<Model>> => {
+    const index = mockModels.findIndex(m => m.id === modelId);
+    if (index === -1) {
+      return { success: false, error: 'Model not found' };
+    }
+    
+    mockModels[index] = { ...mockModels[index], ...updatedModel };
+    return { success: true, data: mockModels[index] };
+  },
+
+  deleteModel: async (modelId: string): Promise<ApiResponse<boolean>> => {
+    const index = mockModels.findIndex(m => m.id === modelId);
+    if (index === -1) {
+      return { success: false, error: 'Model not found' };
+    }
+    
+    mockModels.splice(index, 1);
+    return { success: true, data: true };
+  },
+
+  // Prompt template management
+  createPromptTemplate: async (template: PromptTemplate): Promise<ApiResponse<PromptTemplate>> => {
+    const model = mockModels.find(m => m.id === template.modelId);
+    if (!model) {
+      return { success: false, error: 'Model not found' };
+    }
+    
+    if (!model.promptTemplates) {
+      model.promptTemplates = [];
+    }
+    
+    model.promptTemplates.push(template);
+    return { success: true, data: template };
+  },
+
+  deletePromptTemplate: async (modelId: string, templateId: string): Promise<ApiResponse<boolean>> => {
+    const model = mockModels.find(m => m.id === modelId);
+    if (!model || !model.promptTemplates) {
+      return { success: false, error: 'Model or template not found' };
+    }
+    
+    const index = model.promptTemplates.findIndex(t => t.id === templateId);
+    if (index === -1) {
+      return { success: false, error: 'Template not found' };
+    }
+    
+    model.promptTemplates.splice(index, 1);
+    return { success: true, data: true };
   },
 
   // User functions
@@ -309,7 +375,7 @@ export const api = {
     }
     
     const user = JSON.parse(storedUser);
-    if (!user.apiKey) {
+    if (!user.apiKey && !user.isAdmin) {
       return { success: false, error: 'Replicate API key not set. Please add your API key in your profile settings.' };
     }
     
@@ -322,7 +388,7 @@ export const api = {
     // For this demo, we'll simulate the response
     console.log('Would call Replicate API with:', {
       model: selectedModel.replicateModelId,
-      apiKey: user.apiKey.substring(0, 5) + '...',
+      apiKey: user.apiKey ? user.apiKey.substring(0, 5) + '...' : 'Using admin credentials',
       input: {
         prompt: params.prompt,
         seed: params.seed,
@@ -359,7 +425,7 @@ export const api = {
       
       const randomIndex = Math.floor(Math.random() * placeholderUrls.length);
       
-      images.push({
+      const newImage: GeneratedImage = {
         id: uuidv4(),
         url: placeholderUrls[randomIndex],
         prompt: params.prompt,
@@ -370,8 +436,11 @@ export const api = {
         model: params.model,
         createdAt: new Date().toISOString(),
         userId: user.id,
-        isFavorite: false
-      });
+        isFavorite: false,
+        generationParams: { ...params, seed: randomSeed }
+      };
+      
+      images.push(newImage);
     }
     
     // Save generated images to history
@@ -420,6 +489,29 @@ export const api = {
     localStorage.setItem('generationHistory', JSON.stringify(generationHistory));
     
     return { success: true, data: generationHistory[imageIndex] };
+  },
+
+  // Delete image from history
+  deleteImage: async (imageId: string): Promise<ApiResponse<boolean>> => {
+    const history = localStorage.getItem('generationHistory');
+    if (!history) {
+      return { success: false, error: 'Image not found' };
+    }
+    
+    const generationHistory: GeneratedImage[] = JSON.parse(history);
+    const imageIndex = generationHistory.findIndex(img => img.id === imageId);
+    
+    if (imageIndex === -1) {
+      return { success: false, error: 'Image not found' };
+    }
+    
+    // Remove the image
+    generationHistory.splice(imageIndex, 1);
+    
+    // Save updated history
+    localStorage.setItem('generationHistory', JSON.stringify(generationHistory));
+    
+    return { success: true, data: true };
   },
 
   // Get favorite images

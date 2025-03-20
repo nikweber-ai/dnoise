@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -80,7 +81,7 @@ const Users = () => {
       email: '',
       name: '',
       isAdmin: false,
-      highlightColor: '#9b87f5',
+      highlightColor: '#ff653a',
       models: [],
     },
   });
@@ -111,7 +112,7 @@ const Users = () => {
       email: user.email,
       name: user.name || '',
       isAdmin: user.isAdmin,
-      highlightColor: user.highlightColor || '#9b87f5',
+      highlightColor: user.highlightColor || '#ff653a',
       models: user.models || [],
     });
     
@@ -183,9 +184,9 @@ const Users = () => {
                     <div className="flex items-center space-x-2">
                       <div 
                         className="h-5 w-5 rounded-full border"
-                        style={{ backgroundColor: user.highlightColor || '#9b87f5' }}
+                        style={{ backgroundColor: user.highlightColor || '#ff653a' }}
                       />
-                      <span>{user.highlightColor || '#9b87f5'}</span>
+                      <span>{user.highlightColor || '#ff653a'}</span>
                     </div>
                   </TableCell>
                   <TableCell>{user.isAdmin ? 'Yes' : 'No'}</TableCell>
@@ -351,4 +352,3 @@ const Users = () => {
 };
 
 export default Users;
-

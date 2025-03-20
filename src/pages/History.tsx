@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { useImageGeneration, downloadImage } from '@/hooks/useImageGeneration';
-import { Download, Info, Search, Trash } from 'lucide-react';
+import { Download, Info, Search, Trash, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -17,8 +18,21 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { GeneratedImage } from '@/services/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { api } from '@/services/api';
 
 const History = () => {
   const { useGenerationHistory } = useImageGeneration();
@@ -26,7 +40,10 @@ const History = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const downloadRef = useRef<HTMLAnchorElement>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -43,6 +60,57 @@ const History = () => {
 
   const handleDownload = (image: GeneratedImage) => {
     downloadImage(image);
+  };
+
+  const deleteImageMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const response = await api.deleteImage(imageId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete image');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Image deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['generationHistory'] });
+      setDeleteDialogOpen(false);
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete image: ${error.message}`);
+    },
+  });
+
+  const handleDeleteImage = () => {
+    if (selectedImage) {
+      deleteImageMutation.mutate(selectedImage.id);
+    }
+  };
+
+  const handleConfirmDelete = (image: GeneratedImage) => {
+    setSelectedImage(image);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleLoadInGenerator = (image: GeneratedImage) => {
+    // Store the generation parameters in session storage
+    if (image.generationParams) {
+      sessionStorage.setItem('generationParams', JSON.stringify(image.generationParams));
+      toast.success('Image settings loaded');
+      navigate('/generate');
+    } else {
+      // Fallback if we don't have the full params
+      const params = {
+        prompt: image.prompt,
+        model: image.model,
+        seed: image.seed,
+        width: image.width,
+        height: image.height,
+      };
+      sessionStorage.setItem('generationParams', JSON.stringify(params));
+      toast.success('Basic image settings loaded');
+      navigate('/generate');
+    }
   };
 
   return (
@@ -109,6 +177,22 @@ const History = () => {
                         className="rounded-full bg-white/20 hover:bg-white/40"
                       >
                         <Download className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handleLoadInGenerator(image)}
+                        className="rounded-full bg-white/20 hover:bg-white/40"
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handleConfirmDelete(image)}
+                        className="rounded-full bg-white/20 hover:bg-white/40"
+                      >
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -191,6 +275,20 @@ const History = () => {
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
+                  onClick={() => handleConfirmDelete(selectedImage)}
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleLoadInGenerator(selectedImage)}
+                >
+                  <ArrowUpRight className="mr-2 h-4 w-4" />
+                  Use in Generator
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => handleDownload(selectedImage)}
                 >
                   <Download className="mr-2 h-4 w-4" />
@@ -201,6 +299,23 @@ const History = () => {
           )}
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Image</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this image? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteImage} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <a ref={downloadRef} style={{ display: 'none' }} />
     </div>

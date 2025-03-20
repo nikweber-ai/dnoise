@@ -1,7 +1,10 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,197 +22,219 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, RefreshCwIcon } from 'lucide-react';
 
-const themeFormSchema = z.object({
-  lightModeBackground: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color'),
-  lightModeHighlight: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color'),
-  darkModeBackground: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color'),
-  darkModeHighlight: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color'),
-  defaultHighlightColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color'),
+const systemSettingsSchema = z.object({
+  appName: z.string().min(2, { message: "App name is required" }),
+  description: z.string().optional(),
+  allowUserRegistration: z.boolean(),
+  defaultModels: z.array(z.string()),
 });
 
-const apiFormSchema = z.object({
-  apiEndpoint: z.string().url('Please enter a valid URL'),
-  defaultTimeout: z.coerce.number().int().positive('Timeout must be positive'),
+const apiSettingsSchema = z.object({
+  adminApiKey: z.string().optional(),
+  replicateModelId: z.string(),
 });
 
-const systemFormSchema = z.object({
-  maxImagesPerBatch: z.coerce.number().int().min(1, 'Must allow at least 1 image per batch'),
-  emailNotificationsEnabled: z.boolean(),
-  systemAnnouncementText: z.string().optional(),
-  debugMode: z.boolean(),
+const themeSettingsSchema = z.object({
+  defaultHighlightColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, {
+    message: "Please enter a valid hex color code (e.g. #ff653a)",
+  }),
+  darkModeBackground: z.string().regex(/^#[0-9A-Fa-f]{6}$/, {
+    message: "Please enter a valid hex color code",
+  }),
+  lightModeBackground: z.string().regex(/^#[0-9A-Fa-f]{6}$/, {
+    message: "Please enter a valid hex color code",
+  }),
 });
-
-type ThemeFormValues = z.infer<typeof themeFormSchema>;
-type ApiFormValues = z.infer<typeof apiFormSchema>;
-type SystemFormValues = z.infer<typeof systemFormSchema>;
 
 const Settings = () => {
-  const themeForm = useForm<ThemeFormValues>({
-    resolver: zodResolver(themeFormSchema),
+  const { theme, applyHighlightColor } = useTheme();
+  const { user, updateCurrentUser } = useAuth();
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const systemForm = useForm<z.infer<typeof systemSettingsSchema>>({
+    resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
-      lightModeBackground: '#FFFFFF',
-      lightModeHighlight: '#ff653a',
-      darkModeBackground: '#1A1A1A',
-      darkModeHighlight: '#ff653a',
+      appName: 'GenHub',
+      description: 'AI-powered image generation platform',
+      allowUserRegistration: true,
+      defaultModels: ['1', '2'],
+    },
+  });
+
+  const apiForm = useForm<z.infer<typeof apiSettingsSchema>>({
+    resolver: zodResolver(apiSettingsSchema),
+    defaultValues: {
+      adminApiKey: user?.apiKey || '',
+      replicateModelId: 'black-forest-labs/flux-dev-lora',
+    },
+  });
+
+  const themeForm = useForm<z.infer<typeof themeSettingsSchema>>({
+    resolver: zodResolver(themeSettingsSchema),
+    defaultValues: {
       defaultHighlightColor: '#ff653a',
+      darkModeBackground: '#1a1a1a',
+      lightModeBackground: '#f8fafc',
     },
   });
 
-  const apiForm = useForm<ApiFormValues>({
-    resolver: zodResolver(apiFormSchema),
-    defaultValues: {
-      apiEndpoint: 'https://api.replicate.com/v1',
-      defaultTimeout: 60,
-    },
-  });
-
-  const systemForm = useForm<SystemFormValues>({
-    resolver: zodResolver(systemFormSchema),
-    defaultValues: {
-      maxImagesPerBatch: 4,
-      emailNotificationsEnabled: true,
-      systemAnnouncementText: '',
-      debugMode: false,
-    },
-  });
-
-  const onThemeSubmit = (data: ThemeFormValues) => {
-    toast.success('Theme settings updated successfully');
-    console.log('Theme settings:', data);
-    
-    // In a real implementation, this would update a database
-    localStorage.setItem('themeSettings', JSON.stringify(data));
+  const onSystemSubmit = (data: z.infer<typeof systemSettingsSchema>) => {
+    toast.success('System settings updated successfully');
+    console.log('System settings:', data);
   };
 
-  const onApiSubmit = (data: ApiFormValues) => {
+  const onApiSubmit = (data: z.infer<typeof apiSettingsSchema>) => {
+    // Update the admin's API key
+    if (user && user.isAdmin) {
+      updateCurrentUser({
+        apiKey: data.adminApiKey
+      });
+    }
     toast.success('API settings updated successfully');
     console.log('API settings:', data);
   };
 
-  const onSystemSubmit = (data: SystemFormValues) => {
-    toast.success('System settings updated successfully');
-    console.log('System settings:', data);
+  const onThemeSubmit = (data: z.infer<typeof themeSettingsSchema>) => {
+    // Apply the highlight color immediately
+    applyHighlightColor(data.defaultHighlightColor);
     
-    // In a real implementation, this would update a database
-    localStorage.setItem('systemSettings', JSON.stringify(data));
+    // Update CSS variables for theme colors
+    document.documentElement.style.setProperty('--background', `0 0% ${getLightness(data.lightModeBackground)}%`);
+    document.documentElement.style.setProperty('--sidebar-background', `0 0% ${getLightness(data.lightModeBackground)}%`);
+    
+    // Set dark mode background custom property
+    const darkModeValue = `220 10% ${getLightness(data.darkModeBackground)}%`;
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      .dark {
+        --background: ${darkModeValue};
+        --sidebar-background: ${darkModeValue};
+        --card: 220 10% ${Math.max(2, getLightness(data.darkModeBackground) - 2)}%;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
+    toast.success('Theme settings updated successfully');
+    console.log('Theme settings:', data);
+  };
+
+  // Helper function to get lightness from hex
+  const getLightness = (hex: string): number => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2 * 100;
+    
+    return Math.round(l);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
+  };
+
+  const generateRandomApiKey = () => {
+    const randomKey = 'r8_' + Array.from({ length: 32 }, () => 
+      Math.floor(Math.random() * 36).toString(36)
+    ).join('');
+    
+    apiForm.setValue('adminApiKey', randomKey);
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Settings</h1>
         <p className="text-muted-foreground mt-2">
-          Configure application settings and appearance
+          Configure global application settings
         </p>
       </div>
 
       <Tabs defaultValue="system">
-        <TabsList className="grid grid-cols-3 mb-6">
+        <TabsList className="mb-6">
           <TabsTrigger value="system">System</TabsTrigger>
-          <TabsTrigger value="api">API Configuration</TabsTrigger>
+          <TabsTrigger value="api">API</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
         </TabsList>
         
         <TabsContent value="system">
-          <Card className="bg-card/40 backdrop-blur-sm">
+          <Card>
             <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
+              <CardTitle>System Settings</CardTitle>
               <CardDescription>
-                General application settings
+                Configure general application settings
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...systemForm}>
-                <form onSubmit={systemForm.handleSubmit(onSystemSubmit)} className="space-y-4">
+                <form onSubmit={systemForm.handleSubmit(onSystemSubmit)} className="space-y-6">
                   <FormField
                     control={systemForm.control}
-                    name="maxImagesPerBatch"
+                    name="appName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Max Images Per Batch</FormLabel>
+                        <FormLabel>Application Name</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          Maximum number of images users can generate in one batch
+                          The name of your application as displayed to users
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
+                  
                   <FormField
                     control={systemForm.control}
-                    name="systemAnnouncementText"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>System Announcement</FormLabel>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Enter a system-wide announcement message..." 
-                            className="resize-none"
-                            {...field} 
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          A brief description of your application
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={systemForm.control}
+                    name="allowUserRegistration"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Enable User Registration
+                          </FormLabel>
+                          <FormDescription>
+                            Allow new users to register for accounts
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <FormDescription>
-                          This message will be displayed to all users
-                        </FormDescription>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  <div className="grid gap-4 grid-cols-2">
-                    <FormField
-                      control={systemForm.control}
-                      name="emailNotificationsEnabled"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                          <div className="space-y-0.5">
-                            <FormLabel>Email Notifications</FormLabel>
-                            <FormDescription>
-                              Send email notifications to users
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={systemForm.control}
-                      name="debugMode"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                          <div className="space-y-0.5">
-                            <FormLabel>Debug Mode</FormLabel>
-                            <FormDescription>
-                              Enable verbose logging
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
+                  
                   <Button type="submit">Save System Settings</Button>
                 </form>
               </Form>
@@ -218,50 +243,84 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="api">
-          <Card className="bg-card/40 backdrop-blur-sm">
+          <Card>
             <CardHeader>
               <CardTitle>API Configuration</CardTitle>
               <CardDescription>
-                Configure the Replicate API connection
+                Configure API keys and connections
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...apiForm}>
-                <form onSubmit={apiForm.handleSubmit(onApiSubmit)} className="space-y-4">
+                <form onSubmit={apiForm.handleSubmit(onApiSubmit)} className="space-y-6">
                   <FormField
                     control={apiForm.control}
-                    name="apiEndpoint"
+                    name="adminApiKey"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>API Endpoint</FormLabel>
+                        <FormLabel>Admin Replicate API Key</FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <div className="relative w-full">
+                              <Input 
+                                type={showApiKey ? "text" : "password"} 
+                                placeholder="r8_..."
+                                className="pr-20 w-full min-w-96"
+                                {...field} 
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-8 top-0 h-full"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                              >
+                                {showApiKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <div className="flex-shrink-0 flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => copyToClipboard(field.value || '')}
+                            >
+                              <CopyIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={generateRandomApiKey}
+                            >
+                              <RefreshCwIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <FormDescription>
+                          Admin API key for Replicate. Optional for admins, but required for testing image generation.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={apiForm.control}
+                    name="replicateModelId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Replicate Model ID</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
                         <FormDescription>
-                          The base URL for the Replicate API
+                          The default Replicate model ID used for image generation (e.g., black-forest-labs/flux-dev-lora)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={apiForm.control}
-                    name="defaultTimeout"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Request Timeout (seconds)</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Maximum time to wait for API responses
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
+                  
                   <Button type="submit">Save API Settings</Button>
                 </form>
               </Form>
@@ -270,131 +329,76 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="theme">
-          <Card className="bg-card/40 backdrop-blur-sm">
+          <Card>
             <CardHeader>
               <CardTitle>Theme Settings</CardTitle>
               <CardDescription>
-                Configure the application appearance and color scheme
+                Configure the appearance of your application
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...themeForm}>
-                <form onSubmit={themeForm.handleSubmit(onThemeSubmit)} className="space-y-4">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Light Mode</h3>
-                      <div className="space-y-4">
-                        <FormField
-                          control={themeForm.control}
-                          name="lightModeBackground"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Background Color</FormLabel>
-                              <div className="flex space-x-2">
-                                <div 
-                                  className="h-10 w-10 rounded-md border"
-                                  style={{ backgroundColor: field.value }}
-                                />
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={themeForm.control}
-                          name="lightModeHighlight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Highlight Color</FormLabel>
-                              <div className="flex space-x-2">
-                                <div 
-                                  className="h-10 w-10 rounded-md border"
-                                  style={{ backgroundColor: field.value }}
-                                />
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Dark Mode</h3>
-                      <div className="space-y-4">
-                        <FormField
-                          control={themeForm.control}
-                          name="darkModeBackground"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Background Color</FormLabel>
-                              <div className="flex space-x-2">
-                                <div 
-                                  className="h-10 w-10 rounded-md border"
-                                  style={{ backgroundColor: field.value }}
-                                />
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={themeForm.control}
-                          name="darkModeHighlight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Highlight Color</FormLabel>
-                              <div className="flex space-x-2">
-                                <div 
-                                  className="h-10 w-10 rounded-md border"
-                                  style={{ backgroundColor: field.value }}
-                                />
-                                <FormControl>
-                                  <Input {...field} />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
+                <form onSubmit={themeForm.handleSubmit(onThemeSubmit)} className="space-y-6">
                   <FormField
                     control={themeForm.control}
                     name="defaultHighlightColor"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Default User Highlight Color</FormLabel>
-                        <div className="flex space-x-2">
-                          <div 
-                            className="h-10 w-10 rounded-md border"
-                            style={{ backgroundColor: field.value }}
-                          />
+                        <FormLabel>Default Highlight Color</FormLabel>
+                        <div className="flex space-x-4 items-center">
+                          <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
                         </div>
                         <FormDescription>
-                          Default highlight color for new users
+                          The default color for buttons and interactive elements
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
+                  
+                  <FormField
+                    control={themeForm.control}
+                    name="darkModeBackground"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dark Mode Background</FormLabel>
+                        <div className="flex space-x-4 items-center">
+                          <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </div>
+                        <FormDescription>
+                          The background color used in dark mode
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={themeForm.control}
+                    name="lightModeBackground"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Light Mode Background</FormLabel>
+                        <div className="flex space-x-4 items-center">
+                          <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                        </div>
+                        <FormDescription>
+                          The background color used in light mode
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   <Button type="submit">Save Theme Settings</Button>
                 </form>
               </Form>

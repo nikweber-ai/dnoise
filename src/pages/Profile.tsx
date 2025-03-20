@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,13 @@ const Profile = () => {
     },
   });
 
+  // Apply the highlight color immediately on component mount
+  useEffect(() => {
+    if (user?.highlightColor) {
+      applyHighlightColor(user.highlightColor);
+    }
+  }, [user?.highlightColor]);
+
   const onSubmit = (data: ProfileFormValues) => {
     updateCurrentUser({
       name: data.name,
@@ -58,7 +65,49 @@ const Profile = () => {
       highlightColor: data.highlightColor,
     });
     
+    // Apply the highlight color immediately
+    applyHighlightColor(data.highlightColor);
+    
     toast.success('Profile updated successfully');
+  };
+
+  const applyHighlightColor = (color: string) => {
+    // Convert hex to hsl
+    const r = parseInt(color.slice(1, 3), 16) / 255;
+    const g = parseInt(color.slice(3, 5), 16) / 255;
+    const b = parseInt(color.slice(5, 7), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+        default: h = 0;
+      }
+      
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+    }
+    
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+    
+    // Set the CSS variables
+    document.documentElement.style.setProperty('--primary', `${h} ${s}% ${l}%`);
+    // We also set the sidebar-primary to maintain color consistency
+    document.documentElement.style.setProperty('--sidebar-primary', `${h} ${s}% ${l}%`);
+    
+    // Store the current highlighted color in localStorage
+    localStorage.setItem('userHighlightColor', color);
   };
 
   const copyToClipboard = (text: string) => {
@@ -161,10 +210,11 @@ const Profile = () => {
                         <FormLabel>Replicate API Key</FormLabel>
                         <div className="flex gap-2">
                           <FormControl>
-                            <div className="relative">
+                            <div className="relative w-full">
                               <Input 
                                 type={showApiKey ? "text" : "password"} 
                                 placeholder="r8_..."
+                                className="pr-20 w-full min-w-96"
                                 {...field} 
                               />
                               <Button
@@ -178,22 +228,22 @@ const Profile = () => {
                               </Button>
                             </div>
                           </FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="shrink-0"
-                            onClick={() => copyToClipboard(field.value || '')}
-                          >
-                            <CopyIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="shrink-0"
-                            onClick={generateRandomApiKey}
-                          >
-                            <RefreshCwIcon className="h-4 w-4" />
-                          </Button>
+                          <div className="flex-shrink-0 flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => copyToClipboard(field.value || '')}
+                            >
+                              <CopyIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={generateRandomApiKey}
+                            >
+                              <RefreshCwIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <FormDescription>
                           You need a Replicate API key to generate images. Get one at <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">replicate.com</a>
@@ -227,14 +277,14 @@ const Profile = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Highlight Color</FormLabel>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-4 items-center">
                           <div className="h-10 w-10 rounded-md border" style={{ backgroundColor: field.value }} />
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
                         </div>
                         <FormDescription>
-                          This color will be used for interactive elements in the interface
+                          This color will be used for buttons and interactive elements in the interface
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

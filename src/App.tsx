@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import Profile from "./pages/Profile";
 import Users from "./pages/admin/Users";
 import Settings from "./pages/admin/Settings";
 import Models from "./pages/admin/Models";
+import ModelConfig from "./pages/admin/ModelConfig";
 
 // Error Pages
 import NotFound from "./pages/NotFound";
@@ -65,7 +65,7 @@ const App = () => (
               <Route element={<AuthRoute requireAuth={true} requireAdmin={true} />}>
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/settings" element={<Settings />} />
-                <Route path="/admin/models" element={<Models />} />
+                <Route path="/admin/models" element={<AuthRoute><ModelConfig /></AuthRoute>} />
               </Route>
 
               {/* Catch-all route for 404 */}
