@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -323,7 +322,7 @@ const Settings = () => {
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
-                        </Control>
+                        </FormControl>
                       </FormItem>
                     )}
                   />
