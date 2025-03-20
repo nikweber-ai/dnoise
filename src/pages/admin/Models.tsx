@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -43,11 +44,11 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Edit, Trash, Plus, Save } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const modelFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  replicateModelId: z.string().min(1, 'Replicate model ID is required'),
   defaultPrompt: z.string().optional(),
   lora_weights: z.string().optional(),
 });
@@ -79,7 +80,6 @@ const Models = () => {
     defaultValues: {
       name: '',
       description: '',
-      replicateModelId: 'black-forest-labs/flux-dev-lora',
       defaultPrompt: '',
       lora_weights: '',
     },
@@ -96,17 +96,16 @@ const Models = () => {
 
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormValues) => {
-      console.log('Creating model:', data);
       const newModel: Model = { 
-        id: String(Date.now()),
+        id: uuidv4(),
         name: data.name,
         description: data.description || '',
-        replicateModelId: data.replicateModelId,
         defaultPrompt: data.defaultPrompt || '',
         lora_weights: data.lora_weights || '',
         promptTemplates: [],
       };
-      return newModel;
+      
+      return api.createModel(newModel);
     },
     onSuccess: () => {
       toast.success('Model created successfully');
@@ -122,23 +121,30 @@ const Models = () => {
 
   const updateModelMutation = useMutation({
     mutationFn: async (data: { id: string; formData: ModelFormValues }) => {
-      console.log('Updating model:', data);
+      const currentModel = models?.data?.find(m => m.id === data.id);
+      
+      if (!currentModel) {
+        throw new Error("Model not found");
+      }
+      
       const updatedModel: Model = {
         id: data.id,
         name: data.formData.name,
         description: data.formData.description || '',
-        replicateModelId: data.formData.replicateModelId,
         defaultPrompt: data.formData.defaultPrompt || '',
         lora_weights: data.formData.lora_weights || '',
-        promptTemplates: models?.data?.find(m => m.id === data.id)?.promptTemplates || [],
+        promptTemplates: currentModel.promptTemplates || [],
+        replicateModelId: currentModel.replicateModelId,
       };
-      return updatedModel;
+      
+      return api.updateModel(data.id, updatedModel);
     },
     onSuccess: () => {
       toast.success('Model updated successfully');
       queryClient.invalidateQueries({ queryKey: ['models'] });
       setEditModelId(null);
       modelForm.reset();
+      setShowModelForm(false);
     },
     onError: (error) => {
       toast.error('Failed to update model');
@@ -148,8 +154,7 @@ const Models = () => {
 
   const deleteModelMutation = useMutation({
     mutationFn: async (modelId: string) => {
-      console.log('Deleting model:', modelId);
-      return modelId;
+      return api.deleteModel(modelId);
     },
     onSuccess: () => {
       toast.success('Model deleted successfully');
@@ -163,15 +168,14 @@ const Models = () => {
 
   const createPromptTemplateMutation = useMutation({
     mutationFn: async ({ modelId, data }: { modelId: string, data: PromptTemplateFormValues }) => {
-      console.log('Creating prompt template for model:', modelId, data);
       const newTemplate: PromptTemplate = {
-        id: String(Date.now()),
+        id: uuidv4(),
         modelId: modelId,
         name: data.name,
         prompt: data.prompt,
         negativePrompt: data.negativePrompt,
       };
-      return { modelId, template: newTemplate };
+      return api.createPromptTemplate(newTemplate);
     },
     onSuccess: () => {
       toast.success('Prompt template created successfully');
@@ -190,7 +194,6 @@ const Models = () => {
     modelForm.reset({
       name: model.name,
       description: model.description || '',
-      replicateModelId: model.replicateModelId || 'black-forest-labs/flux-dev-lora',
       defaultPrompt: model.defaultPrompt || '',
       lora_weights: model.lora_weights || '',
     });
@@ -239,7 +242,6 @@ const Models = () => {
             modelForm.reset({
               name: '',
               description: '',
-              replicateModelId: 'black-forest-labs/flux-dev-lora',
               defaultPrompt: '',
               lora_weights: '',
             });
@@ -267,8 +269,8 @@ const Models = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Replicate Model ID</TableHead>
                   <TableHead>LoRA Weights</TableHead>
+                  <TableHead>Trigger Word</TableHead>
                   <TableHead>Prompt Templates</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -284,8 +286,8 @@ const Models = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{model.replicateModelId || 'black-forest-labs/flux-dev-lora'}</TableCell>
                     <TableCell>{model.lora_weights || 'None'}</TableCell>
+                    <TableCell>{model.defaultPrompt || 'None'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {model.promptTemplates?.map((template) => (
@@ -384,23 +386,6 @@ const Models = () => {
 
               <FormField
                 control={modelForm.control}
-                name="replicateModelId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Replicate Model ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="black-forest-labs/flux-dev-lora" />
-                    </FormControl>
-                    <FormDescription>
-                      The model ID used in Replicate API calls (e.g., "black-forest-labs/flux-dev-lora")
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={modelForm.control}
                 name="lora_weights"
                 render={({ field }) => (
                   <FormItem>
@@ -421,12 +406,12 @@ const Models = () => {
                 name="defaultPrompt"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Default Prompt</FormLabel>
+                    <FormLabel>Trigger Word</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="a beautiful photograph of a landscape, high quality, 8k" />
+                      <Textarea {...field} placeholder="Enter trigger word or default prompt" />
                     </FormControl>
                     <FormDescription>
-                      Default prompt to use when selecting this model
+                      Default trigger word to use with this model
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -489,6 +474,23 @@ const Models = () => {
                     </FormControl>
                     <FormDescription>
                       The full prompt text
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={promptForm.control}
+                name="negativePrompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Negative Prompt (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="blurry, low quality, bad anatomy" />
+                    </FormControl>
+                    <FormDescription>
+                      Negative prompt to avoid unwanted elements
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

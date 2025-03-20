@@ -16,6 +16,7 @@ import {
   LucideIcon,
   Layers,
   User,
+  ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -77,12 +78,32 @@ export function Sidebar() {
     return null;
   }
 
+  // Get system settings for app name
+  const getSystemSettings = () => {
+    const settings = localStorage.getItem('appSettings');
+    if (settings) {
+      return JSON.parse(settings);
+    }
+    return { appName: 'GenHub', logoUrl: null };
+  };
+  
+  const systemSettings = getSystemSettings();
+  const appName = systemSettings.appName || 'GenHub';
+  const logoUrl = systemSettings.logoUrl;
+
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background flex">
       <div className="p-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-sidebar-primary">GenHub</h2>
+        <div className="flex items-center gap-2">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-6 w-6" />
+          ) : (
+            <ImageIcon className="h-5 w-5 text-sidebar-primary" />
+          )}
+          <h2 className="text-xl font-semibold text-sidebar-primary">{appName}</h2>
+        </div>
         <Button
           variant="ghost"
           size="icon"
