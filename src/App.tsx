@@ -67,14 +67,8 @@ const App = () => (
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/settings" element={<Settings />} />
                 <Route path="/admin/models" element={<Models />} />
+                <Route path="/admin/models/:id" element={<ModelConfig />} />
               </Route>
-
-              {/* Fix ModelConfig route by adding requireAuth prop */}
-              <Route path="/admin/models/:id" element={
-                <AuthRoute requireAuth={true} requireAdmin={true}>
-                  <ModelConfig />
-                </AuthRoute>
-              } />
 
               {/* Catch-all route for 404 */}
               <Route path="*" element={<NotFound />} />
