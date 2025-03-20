@@ -137,8 +137,8 @@ const Generate = () => {
   };
 
   const handleUseSeed = (seed: number) => {
-    // The form schema expects seed to be either a number or an empty string
-    // We need to set it as a number directly, not as a string
+    // Fix the type error by using the correct type for seed
+    // The form schema expects seed to be a number or empty string
     form.setValue('seed', seed);
     form.setValue('randomizeSeed', false);
   };
