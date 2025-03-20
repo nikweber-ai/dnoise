@@ -21,10 +21,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CopyIcon, CheckIcon, RefreshCwIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { CopyIcon, CheckIcon, RefreshCwIcon, EyeIcon, EyeOffIcon, KeyIcon, MailIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const profileFormSchema = z.object({
   name: z.string().optional(),
@@ -35,11 +37,29 @@ const profileFormSchema = z.object({
   }),
 });
 
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(6, { message: "Current password is required" }),
+  newPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  confirmPassword: z.string().min(6),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+const emailFormSchema = z.object({
+  currentPassword: z.string().min(6, { message: "Current password is required" }),
+  newEmail: z.string().email({ message: "Please enter a valid email address" }),
+});
+
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+type EmailFormValues = z.infer<typeof emailFormSchema>;
 
 const Profile = () => {
-  const { user, updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser, updatePassword, updateEmail, forgotPassword } = useAuth();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -51,12 +71,33 @@ const Profile = () => {
     },
   });
 
-  // Apply the highlight color immediately on component mount
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
+
+  const emailForm = useForm<EmailFormValues>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: {
+      currentPassword: '',
+      newEmail: '',
+    },
+  });
+
   useEffect(() => {
-    if (user?.highlightColor) {
-      applyHighlightColor(user.highlightColor);
+    if (user) {
+      form.reset({
+        name: user.name || '',
+        email: user.email || '',
+        apiKey: user.apiKey || '',
+        highlightColor: user.highlightColor || '#ff653a',
+      });
     }
-  }, [user?.highlightColor]);
+  }, [user, form]);
 
   const onSubmit = (data: ProfileFormValues) => {
     updateCurrentUser({
@@ -64,50 +105,31 @@ const Profile = () => {
       apiKey: data.apiKey,
       highlightColor: data.highlightColor,
     });
-    
-    // Apply the highlight color immediately
-    applyHighlightColor(data.highlightColor);
-    
-    toast.success('Profile updated successfully');
   };
 
-  const applyHighlightColor = (color: string) => {
-    // Convert hex to hsl
-    const r = parseInt(color.slice(1, 3), 16) / 255;
-    const g = parseInt(color.slice(3, 5), 16) / 255;
-    const b = parseInt(color.slice(5, 7), 16) / 255;
-    
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-    
-    if (max === min) {
-      h = s = 0; // achromatic
-    } else {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      
-      switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
-        default: h = 0;
-      }
-      
-      h = Math.round(h * 60);
-      if (h < 0) h += 360;
+  const onPasswordSubmit = async (data: PasswordFormValues) => {
+    const success = await updatePassword(data.currentPassword, data.newPassword);
+    if (success) {
+      passwordForm.reset();
+      setShowPasswordDialog(false);
     }
-    
-    s = Math.round(s * 100);
-    l = Math.round(l * 100);
-    
-    // Set the CSS variables
-    document.documentElement.style.setProperty('--primary', `${h} ${s}% ${l}%`);
-    // We also set the sidebar-primary to maintain color consistency
-    document.documentElement.style.setProperty('--sidebar-primary', `${h} ${s}% ${l}%`);
-    
-    // Store the current highlighted color in localStorage
-    localStorage.setItem('userHighlightColor', color);
+  };
+
+  const onEmailSubmit = async (data: EmailFormValues) => {
+    const success = await updateEmail(data.currentPassword, data.newEmail);
+    if (success) {
+      emailForm.reset();
+      setShowEmailDialog(false);
+      // Update the form with the new email
+      form.setValue('email', data.newEmail);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    if (user?.email) {
+      forgotPassword(user.email);
+      toast.success(`Password reset link sent to ${user.email}`);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -137,6 +159,7 @@ const Profile = () => {
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="api">API Settings</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         
         <TabsContent value="general">
@@ -173,9 +196,60 @@ const Profile = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input readOnly {...field} />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input readOnly {...field} />
+                          </FormControl>
+                          <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="outline">
+                                <MailIcon className="h-4 w-4 mr-2" />
+                                Change
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Change Email</DialogTitle>
+                                <DialogDescription>
+                                  Update your email address. You'll need to confirm your current password.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <Form {...emailForm}>
+                                <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+                                  <FormField
+                                    control={emailForm.control}
+                                    name="currentPassword"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Current Password</FormLabel>
+                                        <FormControl>
+                                          <Input type="password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={emailForm.control}
+                                    name="newEmail"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>New Email</FormLabel>
+                                        <FormControl>
+                                          <Input type="email" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <DialogFooter>
+                                    <Button type="submit">Save Changes</Button>
+                                  </DialogFooter>
+                                </form>
+                              </Form>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                         <FormDescription>
                           Your email address is used for login and notifications
                         </FormDescription>
@@ -294,6 +368,92 @@ const Profile = () => {
                   <Button type="submit">Save Appearance</Button>
                 </form>
               </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+              <CardDescription>
+                Update your password and security settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">Password</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Change your password
+                  </p>
+                </div>
+                <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <KeyIcon className="h-4 w-4 mr-2" />
+                      Change Password
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                      <DialogDescription>
+                        Enter your current password and a new password to update your credentials.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...passwordForm}>
+                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                        <FormField
+                          control={passwordForm.control}
+                          name="currentPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Current Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={passwordForm.control}
+                          name="newPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={passwordForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm New Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="button" variant="link" className="px-0" onClick={handleForgotPassword}>
+                          Forgot your password?
+                        </Button>
+                        <DialogFooter>
+                          <Button type="submit">Update Password</Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

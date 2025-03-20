@@ -18,6 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import Generate from "./pages/Generate";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
+import Favorites from "./pages/Favorites";
 
 // Admin Pages
 import Users from "./pages/admin/Users";
@@ -60,6 +61,7 @@ const App = () => (
                 <Route path="/generate" element={<Generate />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/favorites" element={<Favorites />} />
               </Route>
 
               {/* Admin Routes (require admin role) */}

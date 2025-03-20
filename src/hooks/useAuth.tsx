@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/services/api';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +14,8 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, password: string) => Promise<boolean>;
   updateCurrentUser: (userData: Partial<User>) => void;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  updateEmail: (currentPassword: string, newEmail: string) => Promise<boolean>;
   // Add these properties to match usage in components
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, name?: string) => Promise<boolean>;
@@ -128,6 +131,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     return new Promise((resolve) => {
       setTimeout(() => {
         console.log('Forgot password email sent to:', email);
+        toast.success(`Password reset link sent to ${email}`);
         resolve(true);
         setIsLoading(false);
       }, 1000);
@@ -141,6 +145,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     return new Promise((resolve) => {
       setTimeout(() => {
         console.log('Password reset with token:', token, 'and new password:', password);
+        toast.success('Password has been reset successfully');
         resolve(true);
         setIsLoading(false);
       }, 1000);
@@ -152,7 +157,67 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      toast.success('Profile updated successfully');
     }
+  };
+
+  // New function to update password
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Check if current password is correct - simplified for demo
+        if (
+          (user?.email === 'user@example.com' && currentPassword === 'password') ||
+          (user?.email === 'admin@example.com' && currentPassword === 'admin')
+        ) {
+          // Password updated successfully
+          toast.success('Password updated successfully');
+          resolve(true);
+        } else {
+          setError('Current password is incorrect');
+          toast.error('Current password is incorrect');
+          resolve(false);
+        }
+        setIsLoading(false);
+      }, 1000);
+    });
+  };
+
+  // New function to update email
+  const updateEmail = async (currentPassword: string, newEmail: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Check if current password is correct - simplified for demo
+        if (
+          (user?.email === 'user@example.com' && currentPassword === 'password') ||
+          (user?.email === 'admin@example.com' && currentPassword === 'admin')
+        ) {
+          // Update the user's email
+          if (user) {
+            const updatedUser = { ...user, email: newEmail };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            toast.success('Email updated successfully');
+            resolve(true);
+          } else {
+            setError('User not found');
+            toast.error('User not found');
+            resolve(false);
+          }
+        } else {
+          setError('Current password is incorrect');
+          toast.error('Current password is incorrect');
+          resolve(false);
+        }
+        setIsLoading(false);
+      }, 1000);
+    });
   };
 
   const value = {
@@ -166,6 +231,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     forgotPassword,
     resetPassword,
     updateCurrentUser,
+    updatePassword,
+    updateEmail,
     // Alias functions to match component usage
     signIn: login,
     signUp: register,

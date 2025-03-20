@@ -61,7 +61,7 @@ export function Sidebar() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-sidebar-background">
+    <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background hidden md:flex">
       <div className="p-6">
         <h2 className="text-xl font-semibold text-sidebar-primary">GenHub</h2>
         <p className="text-xs text-sidebar-foreground">AI Image Generator</p>
