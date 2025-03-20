@@ -23,6 +23,8 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   creditsReset?: string;
+  profileImage?: string;
+  updateProfileImage: (imageUrl: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,12 +71,13 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             isAdmin: false,
             models: ['1', '2'],
             highlightColor: '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            profileImage: '/placeholder.svg'
           };
           setUser(mockUser);
           localStorage.setItem('user', JSON.stringify(mockUser));
           resolve(true);
-        } else if (email === 'admin@example.com' && password === 'admin') {
+        } else if (email === 'admin@example.com' && password === 'admin123') { // Updated admin password
           const mockAdmin: User = {
             id: '2',
             email: 'admin@example.com',
@@ -82,7 +85,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             apiKey: 'r8_example_admin_api_key',
             models: ['1', '2', '3', '4'],
             highlightColor: '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            profileImage: '/placeholder.svg'
           };
           setUser(mockAdmin);
           localStorage.setItem('user', JSON.stringify(mockAdmin));
@@ -161,6 +165,15 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   };
 
+  const updateProfileImage = (imageUrl: string) => {
+    if (user) {
+      const updatedUser = { ...user, profileImage: imageUrl };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      toast.success('Profile image updated successfully');
+    }
+  };
+
   // New function to update password
   const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
     setIsLoading(true);
@@ -233,6 +246,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     updateCurrentUser,
     updatePassword,
     updateEmail,
+    updateProfileImage,
     // Alias functions to match component usage
     signIn: login,
     signUp: register,
@@ -240,6 +254,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     loading: isLoading,
     error,
     creditsReset: user?.creditsReset,
+    profileImage: user?.profileImage,
   };
 
   return (

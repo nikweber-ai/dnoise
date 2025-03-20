@@ -1,9 +1,8 @@
 
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Home,
   Image,
@@ -16,9 +15,18 @@ import {
   Moon,
   LucideIcon,
   Layers,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 type NavItemProps = {
   to: string;
@@ -50,18 +58,29 @@ const NavItem = ({ to, icon: Icon, label, end }: NavItemProps) => {
 };
 
 export function Sidebar() {
-  const { isAuthenticated, isAdmin, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const location = useLocation();
 
-  if (isMobile) return null;
-  if (!isAuthenticated) return null;
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/sign-in');
+  };
+
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.charAt(0).toUpperCase();
+  };
+
+  if (!user) {
+    return null;
+  }
 
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background hidden md:flex">
+    <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background flex">
       <div className="p-6">
         <h2 className="text-xl font-semibold text-sidebar-primary">GenHub</h2>
       </div>
@@ -73,10 +92,10 @@ export function Sidebar() {
           <NavItem to="/generate" icon={Image} label="Generate" />
           <NavItem to="/history" icon={History} label="History" />
           <NavItem to="/favorites" icon={Star} label="Favorites" />
-          <NavItem to="/profile" icon={Settings} label="Profile" />
+          <NavItem to="/profile" icon={User} label="Profile" />
         </div>
 
-        {isAdmin && (
+        {user.isAdmin && (
           <div className="mt-6 space-y-1">
             <p className="px-3 py-1 text-xs font-medium text-sidebar-foreground">
               Admin
@@ -105,14 +124,48 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <Button
-          variant="outline"
-          className="w-full justify-start text-sidebar-foreground hover:text-sidebar-accent-foreground"
-          onClick={() => signOut()}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between">
+              <div className="flex items-center">
+                <Avatar className="h-8 w-8 mr-2">
+                  {user.profileImage ? (
+                    <AvatarImage src={user.profileImage} alt={user.email || 'User'} />
+                  ) : (
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <span className="text-sm truncate">{user.email}</span>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <div className="flex items-center justify-start gap-2 p-2">
+              <div className="flex flex-col space-y-1 leading-none">
+                {user.email && (
+                  <p className="font-medium">{user.email}</p>
+                )}
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <NavLink to="/profile" className="cursor-pointer flex w-full items-center">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </NavLink>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="cursor-pointer text-destructive focus:text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );

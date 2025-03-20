@@ -1,4 +1,3 @@
-
 // Mock API service for the Replicate API interaction
 // This would be replaced with actual API calls in a production app
 
@@ -68,10 +67,10 @@ export interface User {
   name?: string;
   isAdmin: boolean;
   apiKey?: string;
-  models?: string[]; // Models the user has access to
-  highlightColor?: string; // Added for user interface customization
-  credits?: number; // Making this optional since we're phasing it out
-  creditsReset?: string; // Keeping for backward compatibility
+  models: string[];
+  highlightColor?: string;
+  creditsReset?: string;
+  profileImage?: string;
 }
 
 export interface ApiResponse<T> {
@@ -183,15 +182,17 @@ const mockUsers: User[] = [
     isAdmin: false,
     apiKey: '',
     models: ['1', '2'],
-    highlightColor: '#ff653a' // Default highlight color
+    highlightColor: '#ff653a',
+    profileImage: 'https://example.com/user1.jpg'
   },
   {
     id: '2',
     email: 'admin@example.com',
     isAdmin: true,
-    apiKey: '', // Admin doesn't need an API key by default
+    apiKey: '',
     models: ['1', '2', '3', '4'],
-    highlightColor: '#ff653a' // Default highlight color for admin
+    highlightColor: '#ff653a',
+    profileImage: 'https://example.com/admin.jpg'
   }
 ];
 

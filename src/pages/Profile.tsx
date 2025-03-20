@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,8 +24,19 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CopyIcon, CheckIcon, RefreshCwIcon, EyeIcon, EyeOffIcon, KeyIcon, MailIcon } from 'lucide-react';
+import { 
+  CopyIcon, 
+  CheckIcon, 
+  RefreshCwIcon, 
+  EyeIcon, 
+  EyeOffIcon, 
+  KeyIcon, 
+  MailIcon,
+  Upload,
+  Camera
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const profileFormSchema = z.object({
   name: z.string().optional(),
@@ -56,10 +66,11 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 type EmailFormValues = z.infer<typeof emailFormSchema>;
 
 const Profile = () => {
-  const { user, updateCurrentUser, updatePassword, updateEmail, forgotPassword } = useAuth();
+  const { user, updateCurrentUser, updatePassword, updateEmail, forgotPassword, updateProfileImage } = useAuth();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(user?.profileImage || null);
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -99,6 +110,15 @@ const Profile = () => {
     }
   }, [user, form]);
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setImagePreview(imageUrl);
+      updateProfileImage(imageUrl);
+    }
+  };
+
   const onSubmit = (data: ProfileFormValues) => {
     updateCurrentUser({
       name: data.name,
@@ -120,7 +140,6 @@ const Profile = () => {
     if (success) {
       emailForm.reset();
       setShowEmailDialog(false);
-      // Update the form with the new email
       form.setValue('email', data.newEmail);
     }
   };
@@ -171,6 +190,34 @@ const Profile = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-6 flex flex-col items-center">
+                <div className="relative group">
+                  <Avatar className="h-24 w-24 border-2 border-primary">
+                    {imagePreview ? (
+                      <AvatarImage src={imagePreview} alt={user?.email || 'User'} />
+                    ) : (
+                      <AvatarFallback className="text-xl">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <label 
+                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                    htmlFor="profile-image"
+                  >
+                    <Camera className="h-6 w-6 text-white" />
+                  </label>
+                  <input 
+                    type="file" 
+                    id="profile-image" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">Click to upload profile picture</p>
+              </div>
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
