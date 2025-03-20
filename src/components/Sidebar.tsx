@@ -69,8 +69,8 @@ export function Sidebar() {
   };
 
   const getUserInitials = () => {
-    if (!user?.email) return 'U';
-    return user.email.charAt(0).toUpperCase();
+    if (!user?.name) return user?.email?.charAt(0).toUpperCase() || 'U';
+    return user.name.charAt(0).toUpperCase();
   };
 
   if (!user) {
@@ -81,8 +81,20 @@ export function Sidebar() {
 
   return (
     <aside className="fixed h-screen w-64 flex-col border-r bg-sidebar-background flex">
-      <div className="p-6">
+      <div className="p-6 flex items-center justify-between">
         <h2 className="text-xl font-semibold text-sidebar-primary">GenHub</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="h-8 w-8"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       <div className="flex-1 px-3 py-2">
@@ -108,44 +120,31 @@ export function Sidebar() {
       </div>
 
       <div className="mt-auto p-4 border-t border-sidebar-border">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-xs text-sidebar-foreground">Theme</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-8 w-8"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-between">
               <div className="flex items-center">
                 <Avatar className="h-8 w-8 mr-2">
                   {user.profileImage ? (
-                    <AvatarImage src={user.profileImage} alt={user.email || 'User'} />
+                    <AvatarImage src={user.profileImage} alt={user.name || user.email || 'User'} />
                   ) : (
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getUserInitials()}
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <span className="text-sm truncate">{user.email}</span>
+                <span className="text-sm truncate">{user.name || user.email}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <div className="flex items-center justify-start gap-2 p-2">
               <div className="flex flex-col space-y-1 leading-none">
+                {user.name && (
+                  <p className="font-medium">{user.name}</p>
+                )}
                 {user.email && (
-                  <p className="font-medium">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 )}
               </div>
             </div>

@@ -8,6 +8,15 @@ export const useModels = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
+  // Helper to get system settings
+  const getSystemSettings = () => {
+    const settings = localStorage.getItem('appSettings');
+    if (settings) {
+      return JSON.parse(settings);
+    }
+    return null;
+  };
+
   // Get all models (admin only)
   const useAllModels = () => {
     return useQuery({
@@ -18,6 +27,16 @@ export const useModels = () => {
           toast.error(response.error || 'Failed to fetch models');
           throw new Error(response.error);
         }
+        
+        // Apply global Replicate model ID if available
+        const settings = getSystemSettings();
+        if (settings?.replicateModelId) {
+          response.data = response.data?.map(model => ({
+            ...model,
+            replicateModelId: settings.replicateModelId
+          }));
+        }
+        
         return response.data || [];
       },
       enabled: !!user && user.isAdmin,
@@ -36,6 +55,16 @@ export const useModels = () => {
           toast.error(response.error || 'Failed to fetch user models');
           throw new Error(response.error);
         }
+        
+        // Apply global Replicate model ID if available
+        const settings = getSystemSettings();
+        if (settings?.replicateModelId) {
+          response.data = response.data?.map(model => ({
+            ...model,
+            replicateModelId: settings.replicateModelId
+          }));
+        }
+        
         return response.data || [];
       },
       enabled: !!userId,

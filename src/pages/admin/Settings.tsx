@@ -27,18 +27,20 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, RefreshCwIcon } from 'lucide-react';
+import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, RefreshCwIcon, Upload } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const systemSettingsSchema = z.object({
   appName: z.string().min(2, { message: "App name is required" }),
   description: z.string().optional(),
   allowUserRegistration: z.boolean(),
   defaultModels: z.array(z.string()),
+  logoImage: z.string().optional(),
+  replicateModelId: z.string(),
 });
 
 const apiSettingsSchema = z.object({
   adminApiKey: z.string().optional(),
-  replicateModelId: z.string(),
 });
 
 const themeSettingsSchema = z.object({
@@ -57,6 +59,7 @@ const Settings = () => {
   const { theme, applyHighlightColor } = useTheme();
   const { user, updateCurrentUser } = useAuth();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const systemForm = useForm<z.infer<typeof systemSettingsSchema>>({
     resolver: zodResolver(systemSettingsSchema),
@@ -65,6 +68,8 @@ const Settings = () => {
       description: 'AI-powered image generation platform',
       allowUserRegistration: true,
       defaultModels: ['1', '2'],
+      logoImage: '',
+      replicateModelId: 'black-forest-labs/flux-dev-lora',
     },
   });
 
@@ -72,7 +77,6 @@ const Settings = () => {
     resolver: zodResolver(apiSettingsSchema),
     defaultValues: {
       adminApiKey: user?.apiKey || '',
-      replicateModelId: 'black-forest-labs/flux-dev-lora',
     },
   });
 
@@ -85,7 +89,30 @@ const Settings = () => {
     },
   });
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        setLogoPreview(imageUrl);
+        systemForm.setValue('logoImage', imageUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const onSystemSubmit = (data: z.infer<typeof systemSettingsSchema>) => {
+    // Here you would save to localStorage or send to your API
+    localStorage.setItem('appSettings', JSON.stringify({
+      appName: data.appName,
+      description: data.description,
+      allowUserRegistration: data.allowUserRegistration,
+      defaultModels: data.defaultModels,
+      logoImage: data.logoImage,
+      replicateModelId: data.replicateModelId
+    }));
+    
     toast.success('System settings updated successfully');
     console.log('System settings:', data);
   };
@@ -197,6 +224,50 @@ const Settings = () => {
                   
                   <FormField
                     control={systemForm.control}
+                    name="logoImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Logo Image</FormLabel>
+                        <div className="flex items-center gap-4">
+                          {(logoPreview || field.value) && (
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={logoPreview || field.value} alt="Logo" />
+                              <AvatarFallback>Logo</AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div className="flex-1">
+                            <FormControl>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLogoUpload}
+                                  className="hidden"
+                                  id="logo-upload"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => document.getElementById('logo-upload')?.click()}
+                                  className="w-full justify-start"
+                                >
+                                  <Upload className="mr-2 h-4 w-4" />
+                                  {logoPreview || field.value ? 'Change Logo' : 'Upload Logo'}
+                                </Button>
+                              </div>
+                            </FormControl>
+                          </div>
+                        </div>
+                        <FormDescription>
+                          Upload a logo image to replace the text logo in the sidebar
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={systemForm.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -206,6 +277,23 @@ const Settings = () => {
                         </FormControl>
                         <FormDescription>
                           A brief description of your application
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={systemForm.control}
+                    name="replicateModelId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Replicate Model ID</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          The default Replicate model ID used for image generation (e.g., black-forest-labs/flux-dev-lora)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -298,23 +386,6 @@ const Settings = () => {
                         </div>
                         <FormDescription>
                           Admin API key for Replicate. Optional for admins, but required for testing image generation.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={apiForm.control}
-                    name="replicateModelId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Replicate Model ID</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          The default Replicate model ID used for image generation (e.g., black-forest-labs/flux-dev-lora)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

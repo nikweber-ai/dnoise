@@ -17,7 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Sidebar />
         <main 
           className={cn(
-            "flex-1 transition-all duration-300 ease-in-out px-4 py-6 md:px-8 overflow-auto",
+            "flex-1 transition-all duration-300 ease-in-out px-4 py-10 md:px-8 overflow-auto",
             "md:ml-64"
           )}
         >
