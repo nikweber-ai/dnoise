@@ -34,6 +34,7 @@ export interface AuthContextType {
   creditsReset?: string;
   profileImage?: string;
   updateProfileImage: (imageUrl: string) => Promise<void>;
+  createUser: (email: string, password: string, name?: string, isAdmin?: boolean) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

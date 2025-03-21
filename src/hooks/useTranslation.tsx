@@ -26,6 +26,27 @@ const translations: Translations = {
     'Don\'t have an account?': 'Don\'t have an account?',
     'Sign in to your account to continue': 'Sign in to your account to continue',
     'Signing in...': 'Signing in...',
+    'Admin logged in successfully!': 'Admin logged in successfully!',
+    'Signed in successfully!': 'Signed in successfully!',
+    'Login failed. Please try again.': 'Login failed. Please try again.',
+    'Public registration is disabled. Please contact an administrator.': 'Public registration is disabled. Please contact an administrator.',
+    'Registration failed. Please try again.': 'Registration failed. Please try again.',
+    'Signed out successfully': 'Signed out successfully',
+    'Failed to sign out. Please try again.': 'Failed to sign out. Please try again.',
+    'Only administrators can create users': 'Only administrators can create users',
+    'User created successfully': 'User created successfully',
+    'Failed to create user. Please try again.': 'Failed to create user. Please try again.',
+    'User created successfully!': 'User created successfully!',
+    'Access Denied': 'Access Denied',
+    'You do not have permission to access this page.': 'You do not have permission to access this page.',
+    'Create User': 'Create User',
+    'Create new users with controlled access': 'Create new users with controlled access',
+    'New User': 'New User',
+    'Create a new user account with custom permissions': 'Create a new user account with custom permissions',
+    'Name': 'Name',
+    'Administrator': 'Administrator',
+    'Grant administrative privileges to this user': 'Grant administrative privileges to this user',
+    'Creating...': 'Creating...',
     
     // Navigation
     'Dashboard': 'Dashboard',
@@ -38,6 +59,7 @@ const translations: Translations = {
     'Models': 'Models',
     'Main': 'Main',
     'Admin': 'Admin',
+    'Create Users': 'Create Users',
     
     // Generation
     'You must be logged in to generate images': 'You must be logged in to generate images',
@@ -52,7 +74,6 @@ const translations: Translations = {
     // Profile
     'General Information': 'General Information',
     'Update your account details': 'Update your account details',
-    'Name': 'Name',
     'This is the name that will be displayed on your profile': 'This is the name that will be displayed on your profile',
     'Change': 'Change',
     'Your email address is used for login and notifications': 'Your email address is used for login and notifications',
@@ -77,6 +98,17 @@ const translations: Translations = {
     // Languages
     'English': 'English',
     'Portuguese (Brazil)': 'Portuguese (Brazil)',
+    
+    // User Management
+    'User List': 'User List',
+    'View and manage user accounts': 'View and manage user accounts',
+    'Actions': 'Actions',
+    'Edit User': 'Edit User',
+    'Modify user settings and permissions': 'Modify user settings and permissions',
+    'Save': 'Save',
+    'Cancel': 'Cancel',
+    'Save Changes': 'Save Changes',
+    'Add User': 'Add User',
   },
   'pt-BR': {
     // Auth
@@ -91,6 +123,27 @@ const translations: Translations = {
     'Don\'t have an account?': 'Não tem uma conta?',
     'Sign in to your account to continue': 'Entre na sua conta para continuar',
     'Signing in...': 'Entrando...',
+    'Admin logged in successfully!': 'Administrador conectado com sucesso!',
+    'Signed in successfully!': 'Conectado com sucesso!',
+    'Login failed. Please try again.': 'Falha no login. Por favor, tente novamente.',
+    'Public registration is disabled. Please contact an administrator.': 'Registro público desativado. Entre em contato com um administrador.',
+    'Registration failed. Please try again.': 'Falha no registro. Por favor, tente novamente.',
+    'Signed out successfully': 'Desconectado com sucesso',
+    'Failed to sign out. Please try again.': 'Falha ao sair. Por favor, tente novamente.',
+    'Only administrators can create users': 'Apenas administradores podem criar usuários',
+    'User created successfully': 'Usuário criado com sucesso',
+    'Failed to create user. Please try again.': 'Falha ao criar usuário. Por favor, tente novamente.',
+    'User created successfully!': 'Usuário criado com sucesso!',
+    'Access Denied': 'Acesso Negado',
+    'You do not have permission to access this page.': 'Você não tem permissão para acessar esta página.',
+    'Create User': 'Criar Usuário',
+    'Create new users with controlled access': 'Crie novos usuários com acesso controlado',
+    'New User': 'Novo Usuário',
+    'Create a new user account with custom permissions': 'Crie uma nova conta de usuário com permissões personalizadas',
+    'Name': 'Nome',
+    'Administrator': 'Administrador',
+    'Grant administrative privileges to this user': 'Conceder privilégios administrativos a este usuário',
+    'Creating...': 'Criando...',
     
     // Navigation
     'Dashboard': 'Painel',
@@ -103,6 +156,7 @@ const translations: Translations = {
     'Models': 'Modelos',
     'Main': 'Principal',
     'Admin': 'Admin',
+    'Create Users': 'Criar Usuários',
     
     // Generation
     'You must be logged in to generate images': 'Você precisa estar logado para gerar imagens',
@@ -117,7 +171,6 @@ const translations: Translations = {
     // Profile
     'General Information': 'Informações Gerais',
     'Update your account details': 'Atualize os detalhes da sua conta',
-    'Name': 'Nome',
     'This is the name that will be displayed on your profile': 'Este é o nome que será exibido no seu perfil',
     'Change': 'Alterar',
     'Your email address is used for login and notifications': 'Seu endereço de email é usado para login e notificações',
@@ -142,6 +195,51 @@ const translations: Translations = {
     // Languages
     'English': 'Inglês',
     'Portuguese (Brazil)': 'Português (Brasil)',
+    
+    // User Management
+    'User List': 'Lista de Usuários',
+    'View and manage user accounts': 'Visualize e gerencie contas de usuários',
+    'Actions': 'Ações',
+    'Edit User': 'Editar Usuário',
+    'Modify user settings and permissions': 'Modificar configurações e permissões do usuário',
+    'Save': 'Salvar',
+    'Cancel': 'Cancelar',
+    'Save Changes': 'Salvar Alterações',
+    'Add User': 'Adicionar Usuário',
+    
+    // General UI
+    'Use Admin Account': 'Usar Conta de Admin',
+    'Use User Account': 'Usar Conta de Usuário',
+    'Save': 'Salvar',
+    'Cancel': 'Cancelar',
+    'Loading...': 'Carregando...',
+    'Error loading data.': 'Erro ao carregar dados.',
+    'Yes': 'Sim',
+    'No': 'Não',
+    'None': 'Nenhum',
+    'Add': 'Adicionar',
+    'Edit': 'Editar',
+    'Delete': 'Excluir',
+    'Submit': 'Enviar',
+    'Reset': 'Redefinir',
+    'Search': 'Buscar',
+    'Filter': 'Filtrar',
+    'Create': 'Criar',
+    'Update': 'Atualizar',
+    'Back': 'Voltar',
+    'Next': 'Próximo',
+    'Previous': 'Anterior',
+    'Select': 'Selecionar',
+    'Choose': 'Escolher',
+    'Upload': 'Enviar',
+    'Download': 'Baixar',
+    'View': 'Visualizar',
+    'Details': 'Detalhes',
+    'Success': 'Sucesso',
+    'Error': 'Erro',
+    'Warning': 'Aviso',
+    'Info': 'Informação',
+    'Confirm': 'Confirmar',
   }
 };
 

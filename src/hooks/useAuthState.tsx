@@ -12,13 +12,18 @@ export const useAuthState = () => {
   // Check if we have a user in localStorage (for demo admin account)
   useEffect(() => {
     const storedUser = localStorage.getItem('demoUser');
-    if (storedUser) {
+    const storedSession = localStorage.getItem('demoSession');
+    
+    if (storedUser && storedSession) {
       try {
         const parsedUser = JSON.parse(storedUser);
+        const parsedSession = JSON.parse(storedSession);
         setUser(parsedUser);
+        setSession(parsedSession);
       } catch (err) {
         console.error("Error parsing stored user:", err);
         localStorage.removeItem('demoUser');
+        localStorage.removeItem('demoSession');
       }
     }
   }, []);
@@ -85,6 +90,7 @@ export const useAuthState = () => {
                   // Store admin user in localStorage for demo purposes
                   if (isAdmin) {
                     localStorage.setItem('demoUser', JSON.stringify(newUser));
+                    localStorage.setItem('demoSession', JSON.stringify(newSession));
                   }
                 }
               } else {
@@ -92,6 +98,7 @@ export const useAuthState = () => {
                 setSession(null);
                 setUser(null);
                 localStorage.removeItem('demoUser');
+                localStorage.removeItem('demoSession');
               }
             } catch (err) {
               console.error("Error in auth state change handler:", err);
@@ -149,6 +156,7 @@ export const useAuthState = () => {
               // Store admin user in localStorage for demo purposes
               if (isAdmin) {
                 localStorage.setItem('demoUser', JSON.stringify(newUser));
+                localStorage.setItem('demoSession', JSON.stringify(data.session));
               }
               
               setIsLoading(false);

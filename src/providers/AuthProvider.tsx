@@ -22,7 +22,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     profileImage,
   } = useAuthState();
 
-  const { login, register, logout, signIn, signUp, signOut } = useAuthOperations(
+  const { login, register, logout, signIn, signUp, signOut, createUser } = useAuthOperations(
     user,
     setUser,
     setSession,
@@ -64,6 +64,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     error,
     creditsReset,
     profileImage,
+    createUser,
   };
 
   return (

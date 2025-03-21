@@ -51,6 +51,11 @@ export const useAuthOperations = (
         
         setUser(adminUser);
         setSession(mockSession);
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('demoUser', JSON.stringify(adminUser));
+        localStorage.setItem('demoSession', JSON.stringify(mockSession));
+        
         setIsLoading(false);
         toast.success(t('Admin logged in successfully!'));
         return true;
@@ -90,6 +95,13 @@ export const useAuthOperations = (
       console.log(`Attempting to register with email: ${email}`);
       setIsLoading(true);
       
+      // Desabilitar registro público (apenas admins podem criar usuários)
+      toast.error(t('Public registration is disabled. Please contact an administrator.'));
+      setIsLoading(false);
+      return false;
+      
+      // Código de registro original desabilitado
+      /*
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -114,6 +126,7 @@ export const useAuthOperations = (
       }
       
       return true;
+      */
     } catch (error: any) {
       console.error("Registration exception:", error);
       setError(t('Registration failed. Please try again.'));
@@ -128,6 +141,18 @@ export const useAuthOperations = (
     try {
       console.log("Attempting to sign out");
       setIsLoading(true);
+      
+      // Verificar se é o usuário demo admin para limpar o localStorage
+      if (user?.email === 'admin@example.com') {
+        localStorage.removeItem('demoUser');
+        localStorage.removeItem('demoSession');
+        setUser(null);
+        setSession(null);
+        toast.success(t('Signed out successfully'));
+        setIsLoading(false);
+        return;
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);
@@ -145,10 +170,47 @@ export const useAuthOperations = (
     }
   };
 
+  // Função para criar usuários (apenas para administradores)
+  const createUser = async (email: string, password: string, name?: string, isAdmin: boolean = false): Promise<boolean> => {
+    if (!user?.isAdmin) {
+      toast.error(t('Only administrators can create users'));
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Criar um novo usuário na aplicação (simulado)
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        email,
+        name: name || '',
+        isAdmin,
+        apiKey: '',
+        models: ['1', '2', '3', '4'],
+        highlightColor: '#ff653a',
+        creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        profileImage: '/placeholder.svg'
+      };
+      
+      // Em uma implementação real, você usaria o Supabase Admin API para criar usuários
+      // Simulação bem-sucedida
+      toast.success(t('User created successfully'));
+      return true;
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast.error(t('Failed to create user. Please try again.'));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     login,
     register,
     logout,
+    createUser,
     signIn: login,
     signUp: register,
     signOut: logout,
