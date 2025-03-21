@@ -57,8 +57,10 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
 
   // Public route but user is already authenticated
   if (!requireAuth && isAuthenticated) {
-    console.log('Already authenticated, redirecting to dashboard');
-    return <Navigate to="/dashboard" replace />;
+    // If coming from a specific page, redirect there, otherwise to dashboard
+    const from = location.state?.from || '/dashboard';
+    console.log('Already authenticated, redirecting to', from);
+    return <Navigate to={from} replace />;
   }
 
   // Render protected routes with Layout

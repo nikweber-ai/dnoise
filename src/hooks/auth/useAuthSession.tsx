@@ -43,6 +43,7 @@ export const useAuthSession = (
         );
 
         // THEN check for existing session
+        console.log("Checking for existing session...");
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
