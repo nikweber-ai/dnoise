@@ -9,25 +9,6 @@ export const useAuthState = () => {
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
 
-  // Check if we have a user in localStorage (for demo admin account)
-  useEffect(() => {
-    const storedUser = localStorage.getItem('demoUser');
-    const storedSession = localStorage.getItem('demoSession');
-    
-    if (storedUser && storedSession) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        const parsedSession = JSON.parse(storedSession);
-        setUser(parsedUser);
-        setSession(parsedSession);
-      } catch (err) {
-        console.error("Error parsing stored user:", err);
-        localStorage.removeItem('demoUser');
-        localStorage.removeItem('demoSession');
-      }
-    }
-  }, []);
-
   // Add a short timeout to prevent infinite loading state
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -70,8 +51,7 @@ export const useAuthState = () => {
                     console.error('Error fetching user profile:', profileError);
                   }
                   
-                  // Check for admin based on email
-                  const isAdmin = newSession.user.email?.includes('admin') || false;
+                  const isAdmin = profile?.is_admin || false;
                   
                   const newUser = {
                     id: newSession.user.id,
@@ -79,26 +59,18 @@ export const useAuthState = () => {
                     name: profile?.name,
                     isAdmin,
                     apiKey: profile?.api_key,
-                    models: ['1', '2', '3', '4'],
-                    highlightColor: '#ff653a',
+                    models: profile?.models || ['1', '2', '3', '4'],
+                    highlightColor: profile?.highlight_color || '#ff653a',
                     creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     profileImage: profile?.profile_image || '/placeholder.svg'
                   };
                   
                   setUser(newUser);
-                  
-                  // Store admin user in localStorage for demo purposes
-                  if (isAdmin) {
-                    localStorage.setItem('demoUser', JSON.stringify(newUser));
-                    localStorage.setItem('demoSession', JSON.stringify(newSession));
-                  }
                 }
               } else {
                 console.log("No session, clearing user");
                 setSession(null);
                 setUser(null);
-                localStorage.removeItem('demoUser');
-                localStorage.removeItem('demoSession');
               }
             } catch (err) {
               console.error("Error in auth state change handler:", err);
@@ -134,8 +106,7 @@ export const useAuthState = () => {
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check for admin based on email
-            const isAdmin = data.session.user.email?.includes('admin') || false;
+            const isAdmin = profile?.is_admin || false;
             
             if (mounted) {
               setSession(data.session);
@@ -145,20 +116,13 @@ export const useAuthState = () => {
                 name: profile?.name,
                 isAdmin,
                 apiKey: profile?.api_key,
-                models: ['1', '2', '3', '4'],
-                highlightColor: '#ff653a',
+                models: profile?.models || ['1', '2', '3', '4'],
+                highlightColor: profile?.highlight_color || '#ff653a',
                 creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 profileImage: profile?.profile_image || '/placeholder.svg'
               };
               
               setUser(newUser);
-              
-              // Store admin user in localStorage for demo purposes
-              if (isAdmin) {
-                localStorage.setItem('demoUser', JSON.stringify(newUser));
-                localStorage.setItem('demoSession', JSON.stringify(data.session));
-              }
-              
               setIsLoading(false);
             }
           } catch (err) {

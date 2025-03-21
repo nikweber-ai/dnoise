@@ -64,7 +64,10 @@ export type Database = {
           api_key: string | null
           created_at: string
           email: string
+          highlight_color: string | null
           id: string
+          is_admin: boolean | null
+          models: string[] | null
           name: string | null
           profile_image: string | null
           updated_at: string
@@ -73,7 +76,10 @@ export type Database = {
           api_key?: string | null
           created_at?: string
           email: string
+          highlight_color?: string | null
           id: string
+          is_admin?: boolean | null
+          models?: string[] | null
           name?: string | null
           profile_image?: string | null
           updated_at?: string
@@ -82,7 +88,10 @@ export type Database = {
           api_key?: string | null
           created_at?: string
           email?: string
+          highlight_color?: string | null
           id?: string
+          is_admin?: boolean | null
+          models?: string[] | null
           name?: string | null
           profile_image?: string | null
           updated_at?: string

@@ -21,6 +21,7 @@ export const useProfileOperations = (
         .update({
           name: userData.name,
           api_key: userData.apiKey,
+          highlight_color: userData.highlightColor,
           profile_image: userData.profileImage
         })
         .eq('id', user.id);

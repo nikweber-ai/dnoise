@@ -29,7 +29,7 @@ export const useAuthOperations = (
       if (error) {
         console.error("Login error:", error);
         setError(error.message);
-        toast.error(error.message);
+        toast.error(t(error.message));
         setIsLoading(false);
         return false;
       }
@@ -45,8 +45,7 @@ export const useAuthOperations = (
             .eq('id', data.user.id)
             .maybeSingle();
             
-          // Check for admin based on email or profile data
-          const isAdmin = data.user.email?.includes('admin') || profile?.is_admin || false;
+          const isAdmin = profile?.is_admin || false;
           
           const newUser: User = {
             id: data.user.id,
@@ -54,7 +53,7 @@ export const useAuthOperations = (
             name: profile?.name || data.user.user_metadata?.name,
             isAdmin,
             apiKey: profile?.api_key || '',
-            models: ['1', '2', '3', '4'], // Default models or from profile
+            models: profile?.models || ['1', '2', '3', '4'],
             highlightColor: profile?.highlight_color || '#ff653a',
             creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             profileImage: profile?.profile_image || '/placeholder.svg'
@@ -144,7 +143,7 @@ export const useAuthOperations = (
       
       if (error) {
         console.error('Error creating user:', error);
-        toast.error(error.message || t('Failed to create user. Please try again.'));
+        toast.error(t(error.message) || t('Failed to create user. Please try again.'));
         return false;
       }
       

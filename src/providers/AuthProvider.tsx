@@ -43,32 +43,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError
   );
 
-  // Check for existing demo user in localStorage on component mount
-  useEffect(() => {
-    if (!user) {
-      const storedUser = localStorage.getItem('demoUser');
-      const storedSession = localStorage.getItem('demoSession');
-      
-      if (storedUser && storedSession) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          const parsedSession = JSON.parse(storedSession);
-          
-          // Only set if we have valid data
-          if (parsedUser && parsedUser.id && parsedUser.email) {
-            setUser(parsedUser);
-            setSession(parsedSession);
-            console.log('Restored user session from localStorage:', parsedUser.email);
-          }
-        } catch (error) {
-          console.error('Error parsing stored user data:', error);
-          // Clean up corrupted data
-          localStorage.removeItem('demoUser');
-          localStorage.removeItem('demoSession');
-        }
-      }
-    }
-  }, []);
+  // Since we've now integrated with Supabase, we don't need to check for demo users anymore
+  // as they will be stored in Supabase instead
 
   const value = {
     user,
