@@ -18,7 +18,7 @@ import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import Index from '@/pages/Index';
 import { AuthRoute } from '@/components/AuthRoute';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import './App.css';
 
 // Admin pages
