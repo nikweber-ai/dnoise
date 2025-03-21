@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/Layout';
 import { toast } from 'sonner';
@@ -17,10 +17,12 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   redirectTo = requireAuth ? '/sign-in' : '/dashboard',
 }) => {
   const { user, loading, error } = useAuth();
+  const location = useLocation();
   
   useEffect(() => {
     if (error) {
       console.error("Auth error:", error);
+      toast.error("Authentication error: " + error);
     }
   }, [error]);
   
@@ -43,7 +45,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   // Route requires authentication but user is not authenticated
   if (requireAuth && !isAuthenticated) {
     console.log('Not authenticated, redirecting to sign-in');
-    return <Navigate to="/sign-in" replace />;
+    return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
   }
 
   // Route requires admin but user is not admin

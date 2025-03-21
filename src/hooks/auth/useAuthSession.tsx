@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export const useAuthSession = (
   setUser: (user: User | null) => void,
@@ -109,6 +110,7 @@ export const useAuthSession = (
     if (!currentSession?.user) return;
     
     try {
+      console.log("Fetching profile for user:", currentSession.user.id);
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -117,7 +119,14 @@ export const useAuthSession = (
         
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching user profile:', profileError);
+        toast.error('Error loading user profile');
         // Continue anyway with basic user info
+      }
+      
+      if (!profile) {
+        console.warn("No profile found for user ID:", currentSession.user.id);
+      } else {
+        console.log("Profile found for user:", profile.name || currentSession.user.email);
       }
       
       const newUser = {
