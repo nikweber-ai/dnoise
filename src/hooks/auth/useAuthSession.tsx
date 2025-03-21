@@ -18,7 +18,7 @@ export const useAuthSession = (
     const initAuthListener = async () => {
       try {
         // Set up the auth state change listener FIRST
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        const { data: authListener } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log("Auth state changed:", event, !!newSession);
             
@@ -72,37 +72,33 @@ export const useAuthSession = (
           if (mounted) setIsLoading(false);
         }
 
-        // Return a cleanup function to unsubscribe
-        return () => {
-          if (subscription) {
-            subscription.unsubscribe();
-          }
-        };
+        // Return the subscription for cleanup
+        return authListener.subscription;
       } catch (err) {
         console.error("Error in auth initialization:", err);
         if (mounted) {
           setError("Authentication initialization failed. Please try again.");
           setIsLoading(false);
         }
+        return null;
       }
     };
 
     // Execute auth listener initialization
-    const cleanupFunction = initAuthListener();
+    const cleanupPromise = initAuthListener();
 
     // Return cleanup function for useEffect
     return () => {
       mounted = false;
-      // Use the cleanup function if it exists
-      if (cleanupFunction instanceof Promise) {
-        cleanupFunction.then(cleanup => {
-          if (cleanup && typeof cleanup === 'function') {
-            cleanup();
-          }
-        }).catch(err => {
-          console.error("Error in cleanup function:", err);
-        });
-      }
+      
+      // Handle cleanup for the subscription
+      cleanupPromise.then(subscription => {
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      }).catch(err => {
+        console.error("Error in cleanup:", err);
+      });
     };
   }, [setUser, setIsLoading, setError]);
 
