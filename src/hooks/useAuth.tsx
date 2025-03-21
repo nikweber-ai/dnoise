@@ -98,8 +98,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                     console.error('Error fetching user profile:', profileError);
                   }
                   
-                  // Check for admin in profile first, then fall back to email check
-                  const isAdmin = profile?.is_admin || newSession.user.email?.includes('admin') || false;
+                  // Check for admin based on email since is_admin doesn't exist in profile
+                  // This is a simple check - you might want to add a proper admin field to profiles table
+                  const isAdmin = newSession.user.email?.includes('admin') || false;
                   
                   setUser({
                     id: newSession.user.id,
@@ -152,8 +153,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check for admin in profile first, then fall back to email check
-            const isAdmin = profile?.is_admin || data.session.user.email?.includes('admin') || false;
+            // Check for admin based on email since is_admin doesn't exist in profile
+            // This is a simple check - you might want to add a proper admin field to profiles table
+            const isAdmin = data.session.user.email?.includes('admin') || false;
             
             if (mounted) {
               setSession(data.session);
