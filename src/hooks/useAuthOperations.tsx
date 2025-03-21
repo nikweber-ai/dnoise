@@ -21,9 +21,39 @@ export const useAuthOperations = (
       console.log(`Attempting to login with email: ${email}`);
       setIsLoading(true);
       
-      // Special case for admin login
-      if (email.includes('admin') && password === 'adminadmin') {
-        console.log("Admin login attempt detected");
+      // Special case for admin login with hardcoded credentials
+      if (email === 'admin@example.com' && password === 'admin123') {
+        console.log("Admin login detected");
+        
+        // For demo admin, set a mock user directly
+        const adminUser: User = {
+          id: 'admin-id',
+          email: 'admin@example.com',
+          name: 'Admin User',
+          isAdmin: true,
+          apiKey: '',
+          models: ['1', '2', '3', '4'],
+          highlightColor: '#ff653a',
+          creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          profileImage: '/placeholder.svg'
+        };
+        
+        // Create a mock session
+        const mockSession = {
+          access_token: 'mock-access-token',
+          refresh_token: 'mock-refresh-token',
+          expires_at: Date.now() + 3600000, // 1 hour from now
+          user: {
+            id: adminUser.id,
+            email: adminUser.email
+          }
+        };
+        
+        setUser(adminUser);
+        setSession(mockSession);
+        setIsLoading(false);
+        toast.success(t('Admin logged in successfully!'));
+        return true;
       }
       
       const { data, error } = await supabase.auth.signInWithPassword({

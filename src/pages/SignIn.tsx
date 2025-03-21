@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,11 +31,18 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignIn = () => {
-  const { signIn, loading: authLoading } = useAuth();
+  const { signIn, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +75,17 @@ const SignIn = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Demo credentials display
+  const loginAsAdmin = () => {
+    form.setValue('email', 'admin@example.com');
+    form.setValue('password', 'admin123');
+  };
+
+  const loginAsUser = () => {
+    form.setValue('email', 'user@example.com');
+    form.setValue('password', 'user123');
   };
 
   const togglePasswordVisibility = () => {
@@ -180,6 +198,26 @@ const SignIn = () => {
             <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
               {isLoading ? t('Signing in...') : t('Sign in')}
             </Button>
+
+            {/* Demo account buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={loginAsAdmin}
+                className="text-xs"
+              >
+                Use Admin Account
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={loginAsUser}
+                className="text-xs"
+              >
+                Use User Account
+              </Button>
+            </div>
 
             <div className="text-center text-sm">
               {t("Don't have an account?")}{' '}

@@ -9,6 +9,20 @@ export const useAuthState = () => {
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
 
+  // Check if we have a user in localStorage (for demo admin account)
+  useEffect(() => {
+    const storedUser = localStorage.getItem('demoUser');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (err) {
+        console.error("Error parsing stored user:", err);
+        localStorage.removeItem('demoUser');
+      }
+    }
+  }, []);
+
   // Add a short timeout to prevent infinite loading state
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -51,10 +65,10 @@ export const useAuthState = () => {
                     console.error('Error fetching user profile:', profileError);
                   }
                   
-                  // Check for admin based on email since is_admin doesn't exist in profile
+                  // Check for admin based on email
                   const isAdmin = newSession.user.email?.includes('admin') || false;
                   
-                  setUser({
+                  const newUser = {
                     id: newSession.user.id,
                     email: newSession.user.email || '',
                     name: profile?.name,
@@ -64,12 +78,20 @@ export const useAuthState = () => {
                     highlightColor: '#ff653a',
                     creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     profileImage: profile?.profile_image || '/placeholder.svg'
-                  });
+                  };
+                  
+                  setUser(newUser);
+                  
+                  // Store admin user in localStorage for demo purposes
+                  if (isAdmin) {
+                    localStorage.setItem('demoUser', JSON.stringify(newUser));
+                  }
                 }
               } else {
                 console.log("No session, clearing user");
                 setSession(null);
                 setUser(null);
+                localStorage.removeItem('demoUser');
               }
             } catch (err) {
               console.error("Error in auth state change handler:", err);
@@ -105,12 +127,12 @@ export const useAuthState = () => {
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check for admin based on email since is_admin doesn't exist in profile
+            // Check for admin based on email
             const isAdmin = data.session.user.email?.includes('admin') || false;
             
             if (mounted) {
               setSession(data.session);
-              setUser({
+              const newUser = {
                 id: data.session.user.id,
                 email: data.session.user.email || '',
                 name: profile?.name,
@@ -120,7 +142,15 @@ export const useAuthState = () => {
                 highlightColor: '#ff653a',
                 creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 profileImage: profile?.profile_image || '/placeholder.svg'
-              });
+              };
+              
+              setUser(newUser);
+              
+              // Store admin user in localStorage for demo purposes
+              if (isAdmin) {
+                localStorage.setItem('demoUser', JSON.stringify(newUser));
+              }
+              
               setIsLoading(false);
             }
           } catch (err) {
