@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Form,
   FormControl,
@@ -16,7 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, ImageIcon } from 'lucide-react';
+import { Eye, EyeOff, ImageIcon, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -31,10 +32,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignIn = () => {
-  const { signIn, isAuthenticated, loading: authLoading } = useAuth();
+  const { signIn, isAuthenticated, loading: authLoading, error: authError } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { t } = useTranslation();
 
   // Redirect if already authenticated
@@ -43,6 +45,13 @@ const SignIn = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  // Show auth errors from context
+  useEffect(() => {
+    if (authError) {
+      setLoginError(authError);
+    }
+  }, [authError]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -55,22 +64,37 @@ const SignIn = () => {
   const onSubmit = async (data: FormValues) => {
     if (isLoading) return; // Prevent multiple submissions
     
+    setLoginError(null);
     setIsLoading(true);
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Attempt to sign in
-      const success = await signIn(data.email, data.password);
+      // Try multiple times if initial attempt fails
+      let attempts = 0;
+      let success = false;
       
-      if (success) {
-        console.log("Sign-in successful!");
-        navigate('/dashboard');
-      } else {
-        console.log("Sign-in failed");
-        // Error is already shown by the useAuth hook
+      while (attempts < 2 && !success) {
+        attempts++;
+        success = await signIn(data.email, data.password);
+        
+        if (success) {
+          console.log("Sign-in successful!");
+          navigate('/dashboard');
+          return;
+        } else if (attempts < 2) {
+          console.log(`Sign-in attempt ${attempts} failed, retrying...`);
+          // Short delay before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-    } catch (error) {
+      
+      if (!success) {
+        console.log("All sign-in attempts failed");
+        setLoginError(t('Login failed after multiple attempts. Please check your credentials.'));
+      }
+    } catch (error: any) {
       console.error("Sign in error:", error);
+      setLoginError(typeof error === 'string' ? error : error?.message || t('An unexpected error occurred'));
       toast.error(t("An error occurred during sign in"));
     } finally {
       setIsLoading(false);
@@ -79,6 +103,11 @@ const SignIn = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const fillDemoCredentials = () => {
+    form.setValue('email', 'admin@example.com');
+    form.setValue('password', 'admin123');
   };
 
   // Get system settings for app name
@@ -112,7 +141,7 @@ const SignIn = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="mx-auto flex justify-center">
             {logoUrl ? (
@@ -128,6 +157,13 @@ const SignIn = () => {
             {t('Sign in to your account to continue')}
           </p>
         </div>
+
+        {loginError && (
+          <Alert variant="destructive" className="mb-4 animate-in fade-in-50">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>{loginError}</AlertDescription>
+          </Alert>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -205,19 +241,28 @@ const SignIn = () => {
           </form>
         </Form>
 
-        {/* Add test credentials for demo purposes */}
+        {/* Demo credentials section with one-click fill */}
         <div className="mt-4 border-t pt-4">
-          <p className="text-sm text-muted-foreground text-center">Demo credentials (for testing only):</p>
+          <p className="text-sm text-muted-foreground text-center">{t('Demo credentials (for testing only):')}</p>
           <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">
             <div>
-              <p className="font-semibold">Email:</p>
+              <p className="font-semibold">{t('Email:')}</p>
               <p>admin@example.com</p>
             </div>
             <div>
-              <p className="font-semibold">Password:</p>
+              <p className="font-semibold">{t('Password:')}</p>
               <p>admin123</p>
             </div>
           </div>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            className="w-full mt-2 text-xs"
+            onClick={fillDemoCredentials}
+          >
+            {t('Use demo credentials')}
+          </Button>
         </div>
       </div>
     </div>

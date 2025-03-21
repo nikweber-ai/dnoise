@@ -8,6 +8,7 @@ export const useAuthState = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
+  const [initializationAttempts, setInitializationAttempts] = useState(0);
 
   // Add a short timeout to prevent infinite loading state
   useEffect(() => {
@@ -16,7 +17,7 @@ export const useAuthState = () => {
         console.log("Auth loading timeout reached - forcing load completion");
         setIsLoading(false);
       }
-    }, 3000);
+    }, 5000); // Increase timeout to 5 seconds
 
     return () => clearTimeout(loadingTimeout);
   }, [isLoading]);
@@ -52,13 +53,12 @@ export const useAuthState = () => {
                       console.error('Error fetching user profile:', profileError);
                     }
                     
-                    const isAdmin = profile?.is_admin || false;
-                    
+                    // Create user object with fallbacks for each property
                     const newUser = {
                       id: newSession.user.id,
                       email: newSession.user.email || '',
                       name: profile?.name || newSession.user.user_metadata?.name || '',
-                      isAdmin,
+                      isAdmin: profile?.is_admin || false,
                       apiKey: profile?.api_key || '',
                       models: profile?.models || ['1', '2', '3', '4'],
                       highlightColor: profile?.highlight_color || '#ff653a',
@@ -67,6 +67,7 @@ export const useAuthState = () => {
                     };
                     
                     setUser(newUser);
+                    setError(null); // Clear any previous errors on successful login
                   } catch (err) {
                     console.error("Error in profile fetching:", err);
                     // Set basic user info even if profile fetch fails
@@ -122,15 +123,13 @@ export const useAuthState = () => {
               // Continue anyway with basic user info
             }
             
-            const isAdmin = profile?.is_admin || false;
-            
             if (mounted) {
               setSession(data.session);
               const newUser = {
                 id: data.session.user.id,
                 email: data.session.user.email || '',
                 name: profile?.name || data.session.user.user_metadata?.name || '',
-                isAdmin,
+                isAdmin: profile?.is_admin || false,
                 apiKey: profile?.api_key || '',
                 models: profile?.models || ['1', '2', '3', '4'],
                 highlightColor: profile?.highlight_color || '#ff653a',
@@ -164,7 +163,10 @@ export const useAuthState = () => {
         }
       } catch (err) {
         console.error("Error in auth initialization:", err);
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setError("Authentication initialization failed. Please try again.");
+          setIsLoading(false);
+        }
       }
     };
 
@@ -173,7 +175,14 @@ export const useAuthState = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [initializationAttempts]);
+
+  // Function to retry authentication initialization
+  const retryInitialization = () => {
+    setIsLoading(true);
+    setError(null);
+    setInitializationAttempts(prev => prev + 1);
+  };
 
   return {
     user,
@@ -188,5 +197,6 @@ export const useAuthState = () => {
     isAdmin: user?.isAdmin || false,
     creditsReset: user?.creditsReset,
     profileImage: user?.profileImage,
+    retryInitialization,
   };
 };
