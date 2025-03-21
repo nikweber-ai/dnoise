@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -73,8 +72,19 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             console.error('Error fetching user profile:', profileError);
           }
           
-          // Check if user is admin (demo: if email includes "admin")
-          const isAdmin = session.user.email?.includes('admin') || false;
+          // Check if user is admin (give admin privileges to nikolasmsw@gmail.com)
+          const isAdmin = session.user.email === 'nikolasmsw@gmail.com' || 
+                         session.user.email?.includes('admin') || 
+                         false;
+          
+          // Load profile image from localStorage or use default
+          const savedProfileImage = localStorage.getItem(`profileImage_${session.user.id}`);
+          const profileImageToUse = savedProfileImage || profile?.profile_image || '/placeholder.svg';
+          
+          // Store profile image in localStorage for persistence
+          if (profile?.profile_image && !savedProfileImage) {
+            localStorage.setItem(`profileImage_${session.user.id}`, profile.profile_image);
+          }
           
           setUser({
             id: session.user.id,
@@ -85,7 +95,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             models: ['1', '2', '3', '4'], // Default models
             highlightColor: '#ff653a',
             creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            profileImage: profile?.profile_image || '/placeholder.svg'
+            profileImage: profileImageToUse
           });
         } else {
           setUser(null);
@@ -111,8 +121,19 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check if user is admin (demo: if email includes "admin")
-            const isAdmin = session.user.email?.includes('admin') || false;
+            // Check if user is admin (give admin privileges to nikolasmsw@gmail.com)
+            const isAdmin = session.user.email === 'nikolasmsw@gmail.com' || 
+                           session.user.email?.includes('admin') || 
+                           false;
+            
+            // Load profile image from localStorage or use default
+            const savedProfileImage = localStorage.getItem(`profileImage_${session.user.id}`);
+            const profileImageToUse = savedProfileImage || profile?.profile_image || '/placeholder.svg';
+            
+            // Store profile image in localStorage for persistence
+            if (profile?.profile_image && !savedProfileImage) {
+              localStorage.setItem(`profileImage_${session.user.id}`, profile.profile_image);
+            }
             
             setUser({
               id: session.user.id,
@@ -123,7 +144,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               models: ['1', '2', '3', '4'], // Default models
               highlightColor: '#ff653a',
               creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              profileImage: profile?.profile_image || '/placeholder.svg'
+              profileImage: profileImageToUse
             });
             
             setIsLoading(false);
@@ -307,7 +328,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return;
       }
       
-      // Update local state
+      // Update local state and localStorage for persistence
+      localStorage.setItem(`profileImage_${user.id}`, imageUrl);
       setUser(prev => prev ? { ...prev, profileImage: imageUrl } : null);
       toast.success('Profile image updated successfully');
     } catch (error) {
