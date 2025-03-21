@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import AuthProvider from "@/hooks/useAuth";
 import { AuthRoute } from "@/components/AuthRoute";
 import { TranslationProvider } from "@/hooks/useTranslation";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Auth Pages
 import SignIn from "./pages/SignIn";
@@ -40,49 +41,51 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TranslationProvider>
-      <AuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner position="bottom-right" />
-            <BrowserRouter>
-              <Routes>
-                {/* Auth Routes (redirect to dashboard if logged in) */}
-                <Route element={<AuthRoute requireAuth={false} />}>
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/sign-up" element={<SignUp />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                </Route>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TranslationProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner position="bottom-right" />
+                <Routes>
+                  {/* Auth Routes (redirect to dashboard if logged in) */}
+                  <Route element={<AuthRoute requireAuth={false} />}>
+                    <Route path="/sign-in" element={<SignIn />} />
+                    <Route path="/sign-up" element={<SignUp />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                  </Route>
 
-                {/* Protected Routes (redirect to login if not logged in) */}
-                <Route element={<AuthRoute requireAuth={true} />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/generate" element={<Generate />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                </Route>
+                  {/* Protected Routes (redirect to login if not logged in) */}
+                  <Route element={<AuthRoute requireAuth={true} />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/generate" element={<Generate />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                  </Route>
 
-                {/* Admin Routes (require admin role) */}
-                <Route element={<AuthRoute requireAuth={true} requireAdmin={true} />}>
-                  <Route path="/admin/users" element={<Users />} />
-                  <Route path="/admin/settings" element={<Settings />} />
-                  <Route path="/admin/models" element={<Models />} />
-                  <Route path="/admin/models/:id" element={<ModelConfig />} />
-                </Route>
+                  {/* Admin Routes (require admin role) */}
+                  <Route element={<AuthRoute requireAuth={true} requireAdmin={true} />}>
+                    <Route path="/admin/users" element={<Users />} />
+                    <Route path="/admin/settings" element={<Settings />} />
+                    <Route path="/admin/models" element={<Models />} />
+                    <Route path="/admin/models/:id" element={<ModelConfig />} />
+                  </Route>
 
-                {/* Catch-all route for 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </TranslationProvider>
-  </QueryClientProvider>
+                  {/* Catch-all route for 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </TooltipProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </TranslationProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
