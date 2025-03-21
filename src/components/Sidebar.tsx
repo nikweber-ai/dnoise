@@ -150,7 +150,7 @@ export function Sidebar() {
       <div className="flex-1 px-3 py-2">
         <div className="space-y-1">
           <p className="px-3 py-1 text-xs font-medium text-sidebar-foreground">{t('Main')}</p>
-          <NavItem to="/" icon={Home} label="Dashboard" end />
+          <NavItem to="/dashboard" icon={Home} label="Dashboard" end />
           <NavItem to="/generate" icon={Image} label="Generate" />
           <NavItem to="/history" icon={History} label="History" />
           <NavItem to="/favorites" icon={Star} label="Favorites" />

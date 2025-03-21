@@ -27,16 +27,22 @@ import ModelConfig from '@/pages/admin/ModelConfig';
 import Users from '@/pages/admin/Users';
 import Settings from '@/pages/admin/Settings';
 
+// Configure QueryClient with better defaults for our app
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
+      retryDelay: 1000,
+      staleTime: 30000, // 30 seconds
       refetchOnWindowFocus: false,
+      refetchOnMount: true,
     },
   },
 });
 
 function App() {
+  console.log("App rendering");
+  
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

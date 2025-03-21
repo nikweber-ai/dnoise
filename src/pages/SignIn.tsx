@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -47,26 +48,34 @@ const SignIn = () => {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     
-    // Special case for admin account with default password
-    if (data.email.includes('admin') && data.password === 'adminadmin') {
-      // Attempt to sign in with admin credentials
+    try {
+      // Special case for admin account with default password
+      if (data.email.includes('admin') && data.password === 'adminadmin') {
+        console.log("Admin login attempt with adminadmin password");
+        // Attempt to sign in with admin credentials
+        const success = await signIn(data.email, data.password);
+        if (success) {
+          navigate('/dashboard');
+        } else {
+          toast.error(t('Admin login failed. Please check your credentials.'));
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Regular sign in
       const success = await signIn(data.email, data.password);
       if (success) {
-        navigate('/');
+        navigate('/dashboard');
       } else {
-        // If failed, it could be that the admin account doesn't exist yet
-        // You might want to handle this scenario differently in a real app
+        toast.error(t('Login failed. Please check your credentials.'));
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(t('Login failed. Please try again.'));
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Regular sign in
-    const success = await signIn(data.email, data.password);
-    if (success) {
-      navigate('/');
-    }
-    setIsLoading(false);
   };
 
   const togglePasswordVisibility = () => {
@@ -101,7 +110,7 @@ const SignIn = () => {
           </div>
           <h2 className="mt-4 text-3xl font-bold tracking-tight">{t('Sign in')}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t('Sign in to your account to continue')}
+            {t('Sign in info')}
           </p>
         </div>
 
@@ -160,7 +169,7 @@ const SignIn = () => {
                   to="/forgot-password"
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  {t('Forgot your password?')}
+                  {t('Forgot password')}
                 </Link>
               </div>
             </div>
@@ -170,7 +179,7 @@ const SignIn = () => {
             </Button>
 
             <div className="text-center text-sm">
-              {t("Don't have an account?")}{' '}
+              {t("No account")}{' '}
               <Link
                 to="/sign-up"
                 className="font-medium text-primary hover:underline"

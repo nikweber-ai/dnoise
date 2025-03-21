@@ -53,7 +53,7 @@ export const useImageGeneration = () => {
     mutationFn: async (params: GenerationParams) => {
       // Check if user is logged in
       if (!user) {
-        throw new Error(t('You must be logged in to generate images'));
+        throw new Error(t('Login required'));
       }
       
       // Get the user's API key from the profile
@@ -65,11 +65,11 @@ export const useImageGeneration = () => {
       
       if (profileError) {
         console.error('Error fetching user profile:', profileError);
-        throw new Error(t('Failed to fetch your profile. Please try again.'));
+        throw new Error(t('Profile fetch error'));
       }
       
       if (!profile.api_key) {
-        throw new Error(t('Replicate API key not set. Please add your API key in your profile settings.'));
+        throw new Error(t('API key required'));
       }
       
       // Call the Replicate edge function
@@ -89,8 +89,32 @@ export const useImageGeneration = () => {
         }
       });
       
-      if (error || !data.success) {
-        const errorMessage = error || data.error || t('Image generation failed');
+      if (error) {
+        console.error('Edge function error:', error);
+        let errorMessage = t('Generation failed message');
+        // Parse error messages for better user feedback
+        if (typeof error === 'string' && error.includes('rate limit')) {
+          errorMessage = t('Rate limit exceeded. Please try again later.');
+        } else if (typeof error === 'string' && error.includes('invalid token')) {
+          errorMessage = t('Invalid API key. Please check your Replicate API key.');
+        }
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      if (!data.success) {
+        console.error('Generation failed:', data.error);
+        let errorMessage = data.error || t('Generation failed message');
+        
+        // Parse specific error types for better user feedback
+        if (errorMessage.includes('rate limit')) {
+          errorMessage = t('Rate limit exceeded. Please try again later.');
+        } else if (errorMessage.includes('invalid token')) {
+          errorMessage = t('Invalid API key. Please check your Replicate API key.');
+        } else if (errorMessage.includes('credit')) {
+          errorMessage = t('You have reached your credit limit. Please upgrade your plan.');
+        }
+        
         toast.error(errorMessage);
         throw new Error(errorMessage);
       }
@@ -139,13 +163,19 @@ export const useImageGeneration = () => {
       return [];
     },
     onSuccess: (data) => {
-      toast.success(t(`Generated ${data.length} image${data.length !== 1 ? 's' : ''}`));
+      // Success notification with correct pluralization
+      const count = data.length;
+      const message = count === 1
+        ? t('Generated one', count)
+        : t('Generated many', count);
+      
+      toast.success(message);
       queryClient.invalidateQueries({ queryKey: ['generationHistory', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Generation error:', error);
-      toast.error(`${t('Generation failed')}: ${error.message}`);
+      toast.error(`${t('Generation error')}: ${error.message}`);
     },
   });
 
@@ -163,7 +193,7 @@ export const useImageGeneration = () => {
           .order('created_at', { ascending: false });
           
         if (error) {
-          toast.error(t('Failed to fetch generation history'));
+          toast.error(t('History fetch error'));
           throw error;
         }
         
