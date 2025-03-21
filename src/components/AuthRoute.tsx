@@ -25,7 +25,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     isAdmin: user?.isAdmin || false
   });
 
-  // Show loading indicator with shorter timeout
+  // Show loading indicator for a shorter time
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -36,9 +36,11 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
+  // Get authentication state
   const authenticated = !!user;
   const isAdmin = user?.isAdmin ?? false;
 
+  // Handle authentication requirements
   if (requireAuth && !authenticated) {
     console.info('Not authenticated, redirecting to sign-in');
     return <Navigate to={redirectTo} replace />;
@@ -54,6 +56,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     return <Navigate to={redirectTo} replace />;
   }
 
+  // Render with layout for authenticated routes
   if (requireAuth) {
     return (
       <Layout>
@@ -62,5 +65,6 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
+  // Render without layout for public routes
   return <Outlet />;
 };

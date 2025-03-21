@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -55,13 +56,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [session, setSession] = useState<any>(null);
   const { t } = useTranslation();
 
+  // Add a timeout to prevent infinite loading state
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (isLoading) {
         console.log("Auth loading timeout reached - forcing load completion");
         setIsLoading(false);
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // 3 second timeout (reduced from 5)
 
     return () => clearTimeout(loadingTimeout);
   }, [isLoading]);
@@ -75,7 +77,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         // Set up auth state listener first
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            console.log("Auth state changed:", event);
+            console.log("Auth state changed:", event, !!newSession);
             
             if (!mounted) return;
             
@@ -167,11 +169,15 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             }
           } catch (err) {
             console.error("Error processing session user:", err);
+          } finally {
+            if (mounted) setIsLoading(false);
           }
+        } else {
+          // Ensure loading state is updated even if no session is found
+          if (mounted) setIsLoading(false);
         }
       } catch (err) {
         console.error("Error in auth initialization:", err);
-      } finally {
         if (mounted) setIsLoading(false);
       }
     };
@@ -199,6 +205,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         setIsLoading(false);
         return false;
       }
+      
+      console.log("Login successful:", !!data.user);
       
       // Auth state change listener will handle setting the user
       setIsLoading(false);

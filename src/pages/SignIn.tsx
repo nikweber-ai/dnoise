@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -36,12 +37,8 @@ const SignIn = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
 
-  // If already authenticated, redirect to dashboard
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
+  // Don't use useEffect for redirection to avoid race conditions
+  // We'll handle redirections after successful login
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,7 +59,11 @@ const SignIn = () => {
         // Attempt to sign in with admin credentials
         const success = await signIn(data.email, data.password);
         if (success) {
-          navigate('/dashboard');
+          console.log("Admin sign-in successful, navigating to dashboard");
+          toast.success("Signed in successfully!");
+          navigate('/dashboard', { replace: true });
+        } else {
+          toast.error("Failed to sign in as admin");
         }
         setIsLoading(false);
         return;
@@ -71,10 +72,15 @@ const SignIn = () => {
       // Regular sign in
       const success = await signIn(data.email, data.password);
       if (success) {
-        navigate('/dashboard');
+        console.log("Sign-in successful, navigating to dashboard");
+        toast.success("Signed in successfully!");
+        navigate('/dashboard', { replace: true });
+      } else {
+        toast.error("Failed to sign in. Please check your credentials.");
       }
     } catch (error) {
       console.error("Sign in error:", error);
+      toast.error("An error occurred during sign in");
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +102,13 @@ const SignIn = () => {
   const systemSettings = getSystemSettings();
   const appName = systemSettings.appName || 'GenHub';
   const logoUrl = systemSettings.logoUrl;
+
+  // If already authenticated and not in loading state, redirect to dashboard
+  if (user && !authLoading) {
+    console.log("User already authenticated, navigating to dashboard");
+    navigate('/dashboard', { replace: true });
+    return null;
+  }
 
   // Don't render the login form if we're already authenticated
   if (authLoading) {
