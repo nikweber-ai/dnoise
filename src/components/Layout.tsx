@@ -4,16 +4,15 @@ import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Navigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   
-  console.log("Layout rendering:", { loading, user: !!user });
+  console.log("Layout rendering:", { loading });
 
   if (loading) {
     return (
@@ -21,11 +20,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <LoadingSpinner size="lg" className="mt-[-100px]" />
       </div>
     );
-  }
-
-  if (!user) {
-    console.log("No user in Layout, redirecting to sign-in");
-    return <Navigate to="/sign-in" replace />;
   }
 
   return (
