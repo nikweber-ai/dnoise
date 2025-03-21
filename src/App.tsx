@@ -32,8 +32,8 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <Router>
           <TranslationProvider>
             <AuthProvider>
               <ThemeProvider>
@@ -71,8 +71,8 @@ function App() {
               </ThemeProvider>
             </AuthProvider>
           </TranslationProvider>
-        </QueryClientProvider>
-      </Router>
+        </Router>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

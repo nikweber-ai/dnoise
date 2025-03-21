@@ -25,7 +25,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <div className={cn('flex items-center justify-center', className)}>
+    <div className={cn('flex flex-col items-center justify-center', className)}>
       <div className="animate-spin text-primary">
         <div className={cn(
           'border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full',
@@ -33,7 +33,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         )} />
       </div>
       {showText && (
-        <span className={cn('ml-3 text-primary font-medium', textClassName)}>
+        <span className={cn('mt-3 text-primary font-medium', textClassName)}>
           {t('Loading')}...
         </span>
       )}
