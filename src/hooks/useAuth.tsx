@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,86 +56,130 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setIsLoading(true);
-        
-        if (session?.user) {
-          // Get user profile from database
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (profileError && profileError.code !== 'PGRST116') {
-            console.error('Error fetching user profile:', profileError);
-          }
-          
-          // Check if user is admin (if email includes "admin")
-          const isAdmin = session.user.email?.includes('admin') || false;
-          
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: profile?.name,
-            isAdmin,
-            apiKey: profile?.api_key,
-            models: ['1', '2', '3', '4'], // Default models
-            highlightColor: '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            profileImage: profile?.profile_image || '/placeholder.svg'
-          });
-        } else {
-          setUser(null);
-        }
-        
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.log("Auth loading timeout reached - forcing load completion");
         setIsLoading(false);
       }
-    );
+    }, 5000); // 5 second timeout
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      
-      if (session?.user) {
-        // Get user profile from database
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile, error: profileError }) => {
+    return () => clearTimeout(loadingTimeout);
+  }, [isLoading]);
+
+  useEffect(() => {
+    let mounted = true;
+    console.log("AuthProvider initializing...");
+    
+    const initAuth = async () => {
+      try {
+        // Set up auth state listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log("Auth state changed:", event);
+            
+            if (!mounted) return;
+            
+            try {
+              setSession(newSession);
+              
+              if (newSession?.user) {
+                console.log("User found in session, fetching profile");
+                // Get user profile from database
+                const { data: profile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', newSession.user.id)
+                  .maybeSingle();
+                  
+                if (profileError && profileError.code !== 'PGRST116') {
+                  console.error('Error fetching user profile:', profileError);
+                }
+                
+                // Check if user is admin (if email includes "admin")
+                const isAdmin = newSession.user.email?.includes('admin') || false;
+                
+                setUser({
+                  id: newSession.user.id,
+                  email: newSession.user.email || '',
+                  name: profile?.name,
+                  isAdmin,
+                  apiKey: profile?.api_key,
+                  models: ['1', '2', '3', '4'], // Default models
+                  highlightColor: '#ff653a',
+                  creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                  profileImage: profile?.profile_image || '/placeholder.svg'
+                });
+              } else {
+                console.log("No session, clearing user");
+                setUser(null);
+              }
+            } catch (err) {
+              console.error("Error in auth state change handler:", err);
+            } finally {
+              if (mounted) setIsLoading(false);
+            }
+          }
+        );
+
+        // Then check for existing session
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Error getting session:", sessionError);
+          if (mounted) {
+            setError(sessionError.message);
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        console.log("Got session:", data.session ? "exists" : "none");
+        
+        if (data.session?.user) {
+          try {
+            // Get user profile from database
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.session.user.id)
+              .maybeSingle();
+              
             if (profileError && profileError.code !== 'PGRST116') {
               console.error('Error fetching user profile:', profileError);
             }
             
             // Check if user is admin (if email includes "admin")
-            const isAdmin = session.user.email?.includes('admin') || false;
+            const isAdmin = data.session.user.email?.includes('admin') || false;
             
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: profile?.name,
-              isAdmin,
-              apiKey: profile?.api_key,
-              models: ['1', '2', '3', '4'], // Default models
-              highlightColor: '#ff653a',
-              creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              profileImage: profile?.profile_image || '/placeholder.svg'
-            });
-            
-            setIsLoading(false);
-          });
-      } else {
-        setIsLoading(false);
+            if (mounted) {
+              setSession(data.session);
+              setUser({
+                id: data.session.user.id,
+                email: data.session.user.email || '',
+                name: profile?.name,
+                isAdmin,
+                apiKey: profile?.api_key,
+                models: ['1', '2', '3', '4'], // Default models
+                highlightColor: '#ff653a',
+                creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                profileImage: profile?.profile_image || '/placeholder.svg'
+              });
+            }
+          } catch (err) {
+            console.error("Error processing session user:", err);
+          }
+        }
+      } catch (err) {
+        console.error("Error in auth initialization:", err);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-    });
+    };
+
+    initAuth();
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
     };
   }, []);
 
@@ -160,9 +203,10 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       // Auth state change listener will handle setting the user
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setError(t('Login failed. Please try again.'));
       toast.error(t('Login failed. Please try again.'));
+      console.error("Login error:", error);
       setIsLoading(false);
       return false;
     }

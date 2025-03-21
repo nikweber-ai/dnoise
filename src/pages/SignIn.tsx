@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,11 +30,18 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignIn = () => {
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -46,27 +53,31 @@ const SignIn = () => {
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
+    console.log("Attempting to sign in with:", data.email);
     
-    // Special case for admin account with default password
-    if (data.email.includes('admin') && data.password === 'adminadmin') {
-      // Attempt to sign in with admin credentials
+    try {
+      // Special case for admin account with default password
+      if (data.email.includes('admin') && data.password === 'adminadmin') {
+        console.log("Attempting admin sign in");
+        // Attempt to sign in with admin credentials
+        const success = await signIn(data.email, data.password);
+        if (success) {
+          navigate('/dashboard');
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Regular sign in
       const success = await signIn(data.email, data.password);
       if (success) {
-        navigate('/');
-      } else {
-        // If failed, it could be that the admin account doesn't exist yet
-        // You might want to handle this scenario differently in a real app
+        navigate('/dashboard');
       }
+    } catch (error) {
+      console.error("Sign in error:", error);
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Regular sign in
-    const success = await signIn(data.email, data.password);
-    if (success) {
-      navigate('/');
-    }
-    setIsLoading(false);
   };
 
   const togglePasswordVisibility = () => {
@@ -85,6 +96,17 @@ const SignIn = () => {
   const systemSettings = getSystemSettings();
   const appName = systemSettings.appName || 'GenHub';
   const logoUrl = systemSettings.logoUrl;
+
+  // Don't render the login form if we're already authenticated
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin-slow text-primary">
+          <div className="h-12 w-12 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
