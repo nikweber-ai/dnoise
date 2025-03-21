@@ -1,203 +1,231 @@
-
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useModelSelection } from '@/hooks/useModels';
+import { useImageGeneration } from '@/hooks/useImageGeneration';
+import { useFavorites } from '@/hooks/useFavorites';
+import { CreditCard, Clock, Image as ImageIcon, Zap, User, UserPlus, Star } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { ImageIcon, History, Star, ChevronRight } from 'lucide-react';
-import AppInfo from '@/components/AppInfo';
-import LoadingSpinner from '@/components/LoadingSpinner';
 
-import { api, GeneratedImage } from '@/services/api';
-
-export default function Dashboard() {
+const Dashboard = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
-  const [recentImages, setRecentImages] = useState<GeneratedImage[]>([]);
-  const [favorites, setFavorites] = useState<GeneratedImage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { userModels, isLoading: isLoadingModels } = useModelSelection();
+  const { useGenerationHistory } = useImageGeneration();
+  const { toggleFavorite, useFavoriteImages } = useFavorites();
+  const { data: generationHistory, isLoading: isLoadingHistory } = useGenerationHistory();
+  const { data: favoriteImages, isLoading: isLoadingFavorites } = useFavoriteImages();
 
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          // Fetch recent generations
-          const historyResponse = await api.getGenerationHistory(user.id);
-          if (historyResponse.success && historyResponse.data) {
-            setRecentImages(historyResponse.data.slice(0, 4)); // Show only the latest 4
-          }
-          
-          // Fetch favorites
-          const favoritesResponse = await api.getFavorites(user.id);
-          if (favoritesResponse.success && favoritesResponse.data) {
-            setFavorites(favoritesResponse.data.slice(0, 4)); // Show only the first 4
-          }
-        } catch (error) {
-          console.error('Error fetching dashboard data:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchData();
-    } else {
-      setLoading(false);
+  // Get system settings from localStorage if available
+  const systemSettings = React.useMemo(() => {
+    const settings = localStorage.getItem('systemSettings');
+    return settings ? JSON.parse(settings) : null;
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  // Calculate next credit reset date
+  const getNextResetDate = () => {
+    if (!systemSettings?.creditRolloverEnabled) {
+      return user?.creditsReset || 'Not scheduled';
     }
-  }, [user]);
+    
+    const now = new Date();
+    const resetDay = systemSettings?.creditResetDay || 1;
+    
+    // Create date for this month's reset day
+    let resetDate = new Date(now.getFullYear(), now.getMonth(), resetDay);
+    
+    // If we're past this month's reset day, move to next month
+    if (now > resetDate) {
+      resetDate = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+    }
+    
+    return formatDate(resetDate.toISOString());
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('Dashboard')}</h1>
-          <p className="text-muted-foreground">
-            {user ? t('Welcome back, ') + (user.name || user.email) : t('Welcome to GenHub')}
-          </p>
-        </div>
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Welcome back{user?.name ? `, ${user.name}` : ''}! Here's an overview of your account.
+        </p>
       </div>
-      
-      <AppInfo />
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('Generate')}
-            </CardTitle>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-card/40 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">API Key Status</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{user?.apiKey ? 'Set' : 'Not Set'}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {user?.apiKey 
+                ? 'Your Replicate API key is configured' 
+                : user?.isAdmin 
+                  ? 'Optional for admin users' 
+                  : 'Set your API key in profile settings'}
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card/40 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Models Available</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoadingModels ? '...' : userModels?.length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {userModels && userModels.length > 0 
+                ? `Including ${userModels[0].name}`
+                : 'No models available'}
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-card/40 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Images Generated</CardTitle>
             <ImageIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {t('Create new AI-generated images from text prompts')}
+            <div className="text-2xl font-bold">
+              {isLoadingHistory ? '...' : generationHistory?.length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {generationHistory && generationHistory.length > 0 
+                ? `Last generated ${formatDate(generationHistory[0].createdAt)}`
+                : 'No images generated yet'}
             </p>
           </CardContent>
-          <CardFooter>
-            <Button asChild>
-              <Link to="/generate">
-                {t('Start Generating')} <ChevronRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('History')}
-            </CardTitle>
-            <History className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {t('View your previously generated images')}
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" asChild>
-              <Link to="/history">
-                {t('View History')} <ChevronRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('Favorites')}
-            </CardTitle>
+        <Card className="bg-card/40 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Favorite Images</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {t('Access your saved favorite images')}
+            <div className="text-2xl font-bold">
+              {isLoadingFavorites ? '...' : favoriteImages?.length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {favoriteImages && favoriteImages.length > 0 
+                ? `Last favorited: ${formatDate(favoriteImages[0].createdAt)}`
+                : 'No favorites yet'}
             </p>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" asChild>
-              <Link to="/favorites">
-                {t('View Favorites')} <ChevronRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardFooter>
         </Card>
       </div>
-      
-      {loading ? (
-        <div className="py-12 text-center">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <>
-          {/* Recent Generations */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">{t('Recent Generations')}</h2>
-              {recentImages.length > 0 && (
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/history">{t('View all')}</Link>
-                </Button>
-              )}
-            </div>
-            
-            {recentImages.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {recentImages.map((image) => (
-                  <Link key={image.id} to="/history" className="block group">
-                    <div className="relative aspect-square overflow-hidden rounded-lg border">
-                      <img 
-                        src={image.url} 
-                        alt={image.prompt} 
-                        className="object-cover w-full h-full transition-transform group-hover:scale-105" 
-                      />
-                    </div>
-                  </Link>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="col-span-1 bg-card/40 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Recent Generations</CardTitle>
+            <CardDescription>
+              Your latest image generations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingHistory ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin-slow">
+                  <div className="h-6 w-6 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
+                </div>
+              </div>
+            ) : generationHistory && generationHistory.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {generationHistory.slice(0, 6).map((image) => (
+                  <div key={image.id} className="relative aspect-square rounded-md overflow-hidden group">
+                    <img 
+                      src={image.url} 
+                      alt={image.prompt} 
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <button
+                      onClick={() => toggleFavorite(image.id)}
+                      className="absolute top-2 right-2 p-1 bg-black/50 rounded-full transition-colors hover:bg-black/70"
+                    >
+                      <Star className={`h-4 w-4 ${image.isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-white'}`} />
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
-              <Card>
-                <CardContent className="py-6 text-center">
-                  <p className="text-muted-foreground mb-4">{t('No images generated yet')}</p>
-                  <Button asChild>
-                    <Link to="/generate">{t('Create your first image')}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="text-center py-4 text-muted-foreground">
+                You haven't generated any images yet
+              </div>
             )}
-          </div>
-          
-          {/* Favorites */}
-          {favorites.length > 0 && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">{t('Favorites')}</h2>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/favorites">{t('View all')}</Link>
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {favorites.map((image) => (
-                  <Link key={image.id} to="/favorites" className="block group">
-                    <div className="relative aspect-square overflow-hidden rounded-lg border">
-                      <img 
-                        src={image.url} 
-                        alt={image.prompt} 
-                        className="object-cover w-full h-full transition-transform group-hover:scale-105" 
-                      />
-                      <div className="absolute top-2 right-2">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+            
+            <div className="mt-4 flex justify-center">
+              <Link to="/history">
+                <Button variant="outline">View all images</Button>
+              </Link>
             </div>
-          )}
-        </>
-      )}
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1 bg-card/40 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>
+              Get started with these common tasks
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Link to="/generate">
+              <Button className="w-full">
+                <ImageIcon className="mr-2 h-4 w-4" />
+                Generate New Image
+              </Button>
+            </Link>
+            
+            <Link to="/history">
+              <Button variant="outline" className="w-full">
+                <Clock className="mr-2 h-4 w-4" />
+                View Generation History
+              </Button>
+            </Link>
+            
+            <Link to="/favorites">
+              <Button variant="outline" className="w-full">
+                <Star className="mr-2 h-4 w-4" />
+                View Favorites
+              </Button>
+            </Link>
+            
+            <Link to="/profile">
+              <Button variant="outline" className="w-full">
+                <User className="mr-2 h-4 w-4" />
+                Update Profile
+              </Button>
+            </Link>
+            
+            {user?.isAdmin && (
+              <Link to="/admin/users">
+                <Button variant="outline" className="w-full">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Manage Users
+                </Button>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default Dashboard;

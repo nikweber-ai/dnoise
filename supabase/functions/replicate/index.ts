@@ -18,9 +18,10 @@ serve(async (req) => {
     const body = await req.json()
     const { prompt, negativePrompt, width, height, seed, model, numOutputs, aspectRatio, modelVersion, loraWeights, loraScale, apiKey } = body
 
-    // Check if user's personal API key is provided
-    if (!apiKey) {
-      throw new Error('You must provide your personal Replicate API key in your profile settings.')
+    // Check if API key is provided in the request (the user's personal key)
+    const REPLICATE_API_KEY = apiKey || Deno.env.get('REPLICATE_API_KEY')
+    if (!REPLICATE_API_KEY) {
+      throw new Error('No API key provided. Please add your Replicate API key in your profile settings.')
     }
 
     if (!prompt) {
@@ -58,7 +59,7 @@ serve(async (req) => {
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
-        "Authorization": `Token ${apiKey}`,
+        "Authorization": `Token ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -70,18 +71,7 @@ serve(async (req) => {
     if (!response.ok) {
       const error = await response.json()
       console.error("Replicate API error:", error)
-      
-      // Handle specific error cases
-      let errorMessage = "Image generation failed"
-      if (error.detail?.includes("rate limit")) {
-        errorMessage = "Rate limit exceeded. Please try again later."
-      } else if (error.detail?.includes("invalid token")) {
-        errorMessage = "Invalid API token. Please check your Replicate API key."
-      } else if (error.detail) {
-        errorMessage = error.detail
-      }
-      
-      throw new Error(errorMessage)
+      throw new Error(`Replicate API error: ${JSON.stringify(error)}`)
     }
 
     const prediction = await response.json()
@@ -100,7 +90,7 @@ serve(async (req) => {
       const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
         method: "GET",
         headers: {
-          "Authorization": `Token ${apiKey}`,
+          "Authorization": `Token ${REPLICATE_API_KEY}`,
           "Content-Type": "application/json"
         }
       })

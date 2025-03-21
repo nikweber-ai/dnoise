@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { useTranslation } from '@/hooks/useTranslation';
 import {
   Home,
   Image,
@@ -18,7 +17,6 @@ import {
   Layers,
   User,
   ImageIcon,
-  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,10 +26,7 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuSeparator, 
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
+  DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 
 type NavItemProps = {
@@ -42,8 +37,6 @@ type NavItemProps = {
 };
 
 const NavItem = ({ to, icon: Icon, label, end }: NavItemProps) => {
-  const { t } = useTranslation();
-  
   return (
     <NavLink
       to={to}
@@ -60,7 +53,7 @@ const NavItem = ({ to, icon: Icon, label, end }: NavItemProps) => {
       }
     >
       <Icon className="mr-2 h-4 w-4" />
-      <span>{t(label)}</span>
+      <span>{label}</span>
     </NavLink>
   );
 };
@@ -68,7 +61,6 @@ const NavItem = ({ to, icon: Icon, label, end }: NavItemProps) => {
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { t, language, setLanguage, availableLanguages } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -112,44 +104,23 @@ export function Sidebar() {
           )}
           <h2 className="text-xl font-semibold text-sidebar-primary">{appName}</h2>
         </div>
-        <div className="flex space-x-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Globe className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('Language')}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as any)}>
-                {availableLanguages.map((lang) => (
-                  <DropdownMenuRadioItem key={lang.value} value={lang.value}>
-                    {t(lang.label)}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-8 w-8"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="h-8 w-8"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       <div className="flex-1 px-3 py-2">
         <div className="space-y-1">
-          <p className="px-3 py-1 text-xs font-medium text-sidebar-foreground">{t('Main')}</p>
+          <p className="px-3 py-1 text-xs font-medium text-sidebar-foreground">Main</p>
           <NavItem to="/" icon={Home} label="Dashboard" end />
           <NavItem to="/generate" icon={Image} label="Generate" />
           <NavItem to="/history" icon={History} label="History" />
@@ -160,7 +131,7 @@ export function Sidebar() {
         {user.isAdmin && (
           <div className="mt-6 space-y-1">
             <p className="px-3 py-1 text-xs font-medium text-sidebar-foreground">
-              {t('Admin')}
+              Admin
             </p>
             <NavItem to="/admin/users" icon={Users} label="Users" />
             <NavItem to="/admin/models" icon={Layers} label="Models" />
@@ -202,7 +173,7 @@ export function Sidebar() {
             <DropdownMenuItem asChild>
               <NavLink to="/profile" className="cursor-pointer flex w-full items-center">
                 <User className="mr-2 h-4 w-4" />
-                <span>{t('Profile')}</span>
+                <span>Profile</span>
               </NavLink>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -211,7 +182,7 @@ export function Sidebar() {
               className="cursor-pointer text-destructive focus:text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              <span>{t('Logout')}</span>
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

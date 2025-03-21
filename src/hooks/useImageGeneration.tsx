@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
-import { useTranslation } from '@/hooks/useTranslation';
 
 export interface GenerationParams {
   prompt: string;
@@ -46,14 +45,13 @@ export interface GeneratedImage {
 export const useImageGeneration = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { t } = useTranslation();
 
   // Generate images
   const generateMutation = useMutation({
     mutationFn: async (params: GenerationParams) => {
       // Check if user is logged in
       if (!user) {
-        throw new Error(t('You must be logged in to generate images'));
+        throw new Error('You must be logged in to generate images');
       }
       
       // Get the user's API key from the profile
@@ -65,11 +63,11 @@ export const useImageGeneration = () => {
       
       if (profileError) {
         console.error('Error fetching user profile:', profileError);
-        throw new Error(t('Failed to fetch your profile. Please try again.'));
+        throw new Error('Failed to fetch your profile. Please try again.');
       }
       
       if (!profile.api_key) {
-        throw new Error(t('Replicate API key not set. Please add your API key in your profile settings.'));
+        throw new Error('Replicate API key not set. Please add your API key in your profile settings.');
       }
       
       // Call the Replicate edge function
@@ -81,7 +79,7 @@ export const useImageGeneration = () => {
           height: params.height,
           seed: params.seed,
           model: params.model,
-          numOutputs: params.num_outputs || params.batchSize || 4, // Default to 4 outputs
+          numOutputs: params.num_outputs || params.batchSize || 1,
           aspectRatio: params.aspect_ratio || "1:1",
           loraWeights: params.lora_weights,
           loraScale: params.lora_scale || 1,
@@ -90,7 +88,7 @@ export const useImageGeneration = () => {
       });
       
       if (error || !data.success) {
-        const errorMessage = error || data.error || t('Image generation failed');
+        const errorMessage = error || data.error || 'Image generation failed';
         toast.error(errorMessage);
         throw new Error(errorMessage);
       }
@@ -139,13 +137,13 @@ export const useImageGeneration = () => {
       return [];
     },
     onSuccess: (data) => {
-      toast.success(t(`Generated ${data.length} image${data.length !== 1 ? 's' : ''}`));
+      toast.success(`Generated ${data.length} image${data.length !== 1 ? 's' : ''}`);
       queryClient.invalidateQueries({ queryKey: ['generationHistory', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
     },
     onError: (error) => {
       console.error('Generation error:', error);
-      toast.error(`${t('Generation failed')}: ${error.message}`);
+      toast.error(`Generation failed: ${error.message}`);
     },
   });
 
@@ -163,7 +161,7 @@ export const useImageGeneration = () => {
           .order('created_at', { ascending: false });
           
         if (error) {
-          toast.error(t('Failed to fetch generation history'));
+          toast.error('Failed to fetch generation history');
           throw error;
         }
         

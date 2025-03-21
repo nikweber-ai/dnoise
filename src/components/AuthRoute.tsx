@@ -3,7 +3,6 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/Layout';
-import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface AuthRouteProps {
   requireAuth: boolean;
@@ -21,7 +20,9 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
+        <div className="animate-spin-slow text-primary">
+          <div className="h-12 w-12 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
+        </div>
       </div>
     );
   }

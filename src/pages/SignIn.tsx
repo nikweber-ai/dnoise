@@ -1,41 +1,26 @@
-import React, { useState } from 'react';
+
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, ImageIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 
 const formSchema = z.object({
-  email: z.string().email({
-    message: 'Please enter a valid email address',
-  }),
-  password: z.string().min(6, {
-    message: 'Password must be at least 6 characters',
-  }),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const SignIn = () => {
-  const { signIn } = useAuth();
+  const { signIn, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { t } = useTranslation();
-
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -45,152 +30,101 @@ const SignIn = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
-    setIsLoading(true);
-    
-    try {
-      // Special case for admin account
-      if (data.email.includes('admin') && data.password === 'adminadmin') {
-        console.log("Trying admin login with:", data.email, "adminadmin");
-        toast.info("Attempting admin login...");
-        
-        const success = await signIn(data.email, data.password);
-        if (success) {
-          toast.success("Admin login successful!");
-          navigate('/dashboard');
-        } else {
-          toast.error("Admin login failed. The admin account might not exist yet.");
-        }
-        setIsLoading(false);
-        return;
-      }
-      
-      // Regular sign in
-      const success = await signIn(data.email, data.password);
-      if (success) {
-        toast.success("Login successful!");
-        navigate('/dashboard');
-      } else {
-        toast.error("Login failed. Please check your credentials.");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("An error occurred during login.");
-    } finally {
-      setIsLoading(false);
-    }
+    await signIn(data.email, data.password);
+    navigate('/dashboard');
   };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // Get system settings for app name
-  const getSystemSettings = () => {
-    const settings = localStorage.getItem('appSettings');
-    if (settings) {
-      return JSON.parse(settings);
-    }
-    return { appName: 'GenHub', logoUrl: null };
-  };
-  
-  const systemSettings = getSystemSettings();
-  const appName = systemSettings.appName || 'GenHub';
-  const logoUrl = systemSettings.logoUrl;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex justify-center">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-12 w-12" />
-            ) : (
-              <div className="bg-primary/10 p-2 rounded-full">
-                <ImageIcon className="h-8 w-8 text-primary" />
+    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
+      <div className="w-full max-w-md animate-fade-in">
+        <Card className="glassmorphism">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
+            <CardDescription className="text-center">
+              Enter your email and password to sign in to your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="example@email.com" 
+                          {...field}
+                          className="bg-background/80" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
+                          {...field}
+                          className="bg-background/80" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={loading}
+                >
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </Button>
+              </form>
+            </Form>
+            {error && (
+              <div className="mt-4 text-sm font-medium text-destructive text-center">
+                {error}
               </div>
             )}
-          </div>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight">{t('Sign in')}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t('Sign in to your account to continue')}
-          </p>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Email')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="email" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Password')}</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type={showPassword ? 'text' : 'password'}
-                        autoComplete="current-password"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={togglePasswordVisibility}
-                      className="absolute right-2 top-0 h-full"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Link
-                  to="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  {t('Forgot your password?')}
-                </Link>
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? t('Signing in...') : t('Sign in')}
-            </Button>
-
-            <div className="text-center text-sm">
-              {t("Don't have an account?")}{' '}
-              <Link
-                to="/sign-up"
-                className="font-medium text-primary hover:underline"
+            <div className="mt-4 text-center text-sm">
+              <Link 
+                to="/forgot-password" 
+                className="text-primary hover:text-primary/80 transition"
               >
-                {t('Sign up')}
+                Forgot password?
               </Link>
             </div>
-          </form>
-        </Form>
+          </CardContent>
+          <CardFooter className="flex flex-col items-center">
+            <div className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link 
+                to="/sign-up" 
+                className="text-primary hover:text-primary/80 transition"
+              >
+                Sign up
+              </Link>
+            </div>
+            <div className="mt-4 text-xs text-muted-foreground">
+              <span>Test accounts:</span>
+              <ul className="mt-1 space-y-1">
+                <li>User: user@example.com / password</li>
+                <li>Admin: admin@example.com / password</li>
+              </ul>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
