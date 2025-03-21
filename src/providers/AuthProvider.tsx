@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -45,7 +44,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError
   );
 
-  // Use the initialization hook for admin user and retry logic
   useAuthInitialization(error, user, isLoading, retryInitialization);
 
   const value = {
