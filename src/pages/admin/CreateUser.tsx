@@ -23,13 +23,13 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const formSchema = z.object({
-  email: z.string().email(z.string()),
-  name: z.string().min(1, z.string()),
-  password: z.string().min(6, z.string()),
+  email: z.string().email("Email inválido"),
+  name: z.string().min(1, "Nome é obrigatório"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   isAdmin: z.boolean().default(false),
 });
 
