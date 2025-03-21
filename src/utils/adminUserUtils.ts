@@ -32,7 +32,7 @@ export const ensureAdminUserExists = async () => {
         // First check if the user already exists
         const { data: existingUser, error: userCheckError } = await supabase
           .from('profiles')
-          .select('id, email')
+          .select('id, email, is_admin')
           .eq('email', adminEmail)
           .maybeSingle();
           
@@ -47,7 +47,7 @@ export const ensureAdminUserExists = async () => {
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ is_admin: true })
-            .eq('email', adminEmail);
+            .eq('id', existingUser.id);
             
           if (updateError) {
             console.error('Error updating admin status:', updateError);
@@ -63,12 +63,33 @@ export const ensureAdminUserExists = async () => {
           email: adminEmail,
           password: adminPassword,
           options: {
-            data: { name: 'Admin', is_admin: true }
+            data: { 
+              name: 'Admin User',
+              is_admin: true 
+            }
           }
         });
         
         if (signUpError) {
           console.error('Error signing up admin user:', signUpError);
+          
+          // Try signing in to see if user exists but doesn't have a profile
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: adminEmail,
+            password: adminPassword
+          });
+          
+          if (signInError) {
+            console.error('Error signing in as admin:', signInError);
+            return;
+          }
+          
+          if (signInData.user) {
+            console.log('Admin user exists but may not have a profile, creating profile');
+            // Create profile for existing user
+            await createAdminProfile(signInData.user.id, adminEmail);
+          }
+          
           return;
         }
         
@@ -76,23 +97,7 @@ export const ensureAdminUserExists = async () => {
         
         // Create admin profile for the signed-up user
         if (signUpData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: signUpData.user.id,
-              email: adminEmail,
-              name: 'Admin',
-              is_admin: true,
-              highlight_color: '#ff653a',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-            
-          if (profileError) {
-            console.error('Error creating admin profile:', profileError);
-          } else {
-            console.log('Admin profile created successfully');
-          }
+          await createAdminProfile(signUpData.user.id, adminEmail);
         }
       } catch (innerErr) {
         console.error('Exception in admin user creation:', innerErr);
@@ -102,5 +107,30 @@ export const ensureAdminUserExists = async () => {
     }
   } catch (err) {
     console.error('Error in ensureAdminUserExists:', err);
+  }
+};
+
+// Helper function to create admin profile
+const createAdminProfile = async (userId: string, email: string) => {
+  try {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: userId,
+        email: email,
+        name: 'Admin User',
+        is_admin: true,
+        highlight_color: '#ff653a',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      
+    if (profileError) {
+      console.error('Error creating admin profile:', profileError);
+    } else {
+      console.log('Admin profile created successfully');
+    }
+  } catch (err) {
+    console.error('Error in createAdminProfile:', err);
   }
 };

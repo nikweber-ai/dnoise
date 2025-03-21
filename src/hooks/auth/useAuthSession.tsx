@@ -85,20 +85,22 @@ export const useAuthSession = (
     };
 
     // Execute auth listener initialization
-    const cleanupPromise = initAuthListener();
+    const cleanup = initAuthListener();
 
     // Return cleanup function for useEffect
     return () => {
       mounted = false;
       
       // Handle cleanup for the subscription
-      cleanupPromise.then(subscription => {
-        if (subscription) {
-          subscription.unsubscribe();
-        }
-      }).catch(err => {
-        console.error("Error in cleanup:", err);
-      });
+      if (cleanup) {
+        cleanup.then(subscription => {
+          if (subscription) {
+            subscription.unsubscribe();
+          }
+        }).catch(err => {
+          console.error("Error in cleanup:", err);
+        });
+      }
     };
   }, [setUser, setIsLoading, setError]);
 
@@ -145,6 +147,7 @@ export const useAuthSession = (
     const newUser = {
       id: currentSession.user.id,
       email: currentSession.user.email || '',
+      name: currentSession.user.user_metadata?.name || '',
       isAdmin: false,
       models: ['1', '2', '3', '4'],
       highlightColor: '#ff653a',

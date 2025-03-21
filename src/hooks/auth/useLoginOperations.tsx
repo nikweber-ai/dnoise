@@ -85,6 +85,7 @@ export const useLoginOperations = (
             const basicUser: User = {
               id: data.user.id,
               email: data.user.email || '',
+              name: data.user.user_metadata?.name || '',
               isAdmin: false,
               models: ['1', '2', '3', '4'],
               highlightColor: '#ff653a',

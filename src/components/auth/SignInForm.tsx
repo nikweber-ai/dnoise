@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -59,36 +58,15 @@ const SignInForm: React.FC<SignInFormProps> = ({ loginError, setLoginError }) =>
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Attempt login with additional retry logic
-      let attempts = 0;
-      let success = false;
+      const success = await signIn(data.email, data.password);
       
-      while (attempts < 2 && !success) {
-        attempts++;
-        
-        try {
-          success = await signIn(data.email, data.password);
-        } catch (err) {
-          console.error(`Sign-in attempt ${attempts} failed with error:`, err);
-          // Continue to retry
-        }
-        
-        if (success) {
-          console.log("Sign-in successful!");
-          toast.success(t('Sign in successful!'));
-          navigate('/dashboard');
-          return;
-        } else if (attempts < 2) {
-          console.log(`Sign-in attempt ${attempts} failed, retrying...`);
-          // Short delay before retry
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      if (!success) {
-        console.log("All sign-in attempts failed");
+      if (success) {
+        console.log("Sign-in successful!");
+        toast.success(t('Sign in successful!'));
+        navigate('/dashboard');
+      } else {
+        console.log("Sign-in failed");
         setLoginError(t('Login failed. Please check your credentials and try again.'));
-        toast.error(t('Login failed. Please check your credentials.'));
       }
     } catch (error: any) {
       console.error("Sign in error:", error);
@@ -172,7 +150,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ loginError, setLoginError }) =>
         </form>
       </Form>
 
-      {/* Demo credentials section with one-click fill */}
       <div className="mt-4 border-t pt-4">
         <p className="text-sm text-muted-foreground text-center">{t('Demo credentials (for testing only):')}</p>
         <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">

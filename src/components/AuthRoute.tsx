@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/Layout';
@@ -18,6 +18,12 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
 }) => {
   const { user, loading, error } = useAuth();
   
+  useEffect(() => {
+    if (error) {
+      console.error("Auth error:", error);
+    }
+  }, [error]);
+  
   // Show loading state when authentication is being determined
   if (loading) {
     return (
@@ -25,6 +31,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
         <div className="animate-spin-slow text-primary">
           <div className="h-12 w-12 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
         </div>
+        <div className="ml-3 text-sm text-muted-foreground">Checking authentication...</div>
       </div>
     );
   }
