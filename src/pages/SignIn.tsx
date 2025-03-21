@@ -23,8 +23,8 @@ const formSchema = z.object({
   email: z.string().email({
     message: 'Please enter a valid email address',
   }),
-  password: z.string().min(6, {
-    message: 'Password must be at least 6 characters',
+  password: z.string().min(1, {
+    message: 'Password is required',
   }),
 });
 
@@ -85,7 +85,12 @@ const SignIn = () => {
   const getSystemSettings = () => {
     const settings = localStorage.getItem('appSettings');
     if (settings) {
-      return JSON.parse(settings);
+      try {
+        return JSON.parse(settings);
+      } catch (err) {
+        console.error("Error parsing app settings:", err);
+        return { appName: 'GenHub', logoUrl: null };
+      }
     }
     return { appName: 'GenHub', logoUrl: null };
   };
@@ -199,6 +204,21 @@ const SignIn = () => {
             </div>
           </form>
         </Form>
+
+        {/* Add test credentials for demo purposes */}
+        <div className="mt-4 border-t pt-4">
+          <p className="text-sm text-muted-foreground text-center">Demo credentials (for testing only):</p>
+          <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-muted-foreground">
+            <div>
+              <p className="font-semibold">Email:</p>
+              <p>admin@example.com</p>
+            </div>
+            <div>
+              <p className="font-semibold">Password:</p>
+              <p>admin123</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

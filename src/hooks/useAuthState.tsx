@@ -16,7 +16,7 @@ export const useAuthState = () => {
         console.log("Auth loading timeout reached - forcing load completion");
         setIsLoading(false);
       }
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(loadingTimeout);
   }, [isLoading]);
@@ -41,31 +41,46 @@ export const useAuthState = () => {
                 
                 if (newSession.user) {
                   console.log("User found in session, fetching profile");
-                  const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', newSession.user.id)
-                    .maybeSingle();
+                  try {
+                    const { data: profile, error: profileError } = await supabase
+                      .from('profiles')
+                      .select('*')
+                      .eq('id', newSession.user.id)
+                      .maybeSingle();
+                      
+                    if (profileError && profileError.code !== 'PGRST116') {
+                      console.error('Error fetching user profile:', profileError);
+                    }
                     
-                  if (profileError && profileError.code !== 'PGRST116') {
-                    console.error('Error fetching user profile:', profileError);
+                    const isAdmin = profile?.is_admin || false;
+                    
+                    const newUser = {
+                      id: newSession.user.id,
+                      email: newSession.user.email || '',
+                      name: profile?.name || newSession.user.user_metadata?.name || '',
+                      isAdmin,
+                      apiKey: profile?.api_key || '',
+                      models: profile?.models || ['1', '2', '3', '4'],
+                      highlightColor: profile?.highlight_color || '#ff653a',
+                      creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                      profileImage: profile?.profile_image || '/placeholder.svg'
+                    };
+                    
+                    setUser(newUser);
+                  } catch (err) {
+                    console.error("Error in profile fetching:", err);
+                    // Set basic user info even if profile fetch fails
+                    const newUser = {
+                      id: newSession.user.id,
+                      email: newSession.user.email || '',
+                      isAdmin: false,
+                      models: ['1', '2', '3', '4'],
+                      highlightColor: '#ff653a',
+                      creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                      profileImage: '/placeholder.svg'
+                    };
+                    setUser(newUser);
                   }
-                  
-                  const isAdmin = profile?.is_admin || false;
-                  
-                  const newUser = {
-                    id: newSession.user.id,
-                    email: newSession.user.email || '',
-                    name: profile?.name,
-                    isAdmin,
-                    apiKey: profile?.api_key,
-                    models: profile?.models || ['1', '2', '3', '4'],
-                    highlightColor: profile?.highlight_color || '#ff653a',
-                    creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                    profileImage: profile?.profile_image || '/placeholder.svg'
-                  };
-                  
-                  setUser(newUser);
                 }
               } else {
                 console.log("No session, clearing user");
@@ -104,6 +119,7 @@ export const useAuthState = () => {
               
             if (profileError && profileError.code !== 'PGRST116') {
               console.error('Error fetching user profile:', profileError);
+              // Continue anyway with basic user info
             }
             
             const isAdmin = profile?.is_admin || false;
@@ -113,9 +129,9 @@ export const useAuthState = () => {
               const newUser = {
                 id: data.session.user.id,
                 email: data.session.user.email || '',
-                name: profile?.name,
+                name: profile?.name || data.session.user.user_metadata?.name || '',
                 isAdmin,
-                apiKey: profile?.api_key,
+                apiKey: profile?.api_key || '',
                 models: profile?.models || ['1', '2', '3', '4'],
                 highlightColor: profile?.highlight_color || '#ff653a',
                 creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -127,7 +143,21 @@ export const useAuthState = () => {
             }
           } catch (err) {
             console.error("Error processing session user:", err);
-            if (mounted) setIsLoading(false);
+            if (mounted) {
+              // Set basic user info even if profile fetch fails
+              setSession(data.session);
+              const newUser = {
+                id: data.session.user.id,
+                email: data.session.user.email || '',
+                isAdmin: false,
+                models: ['1', '2', '3', '4'],
+                highlightColor: '#ff653a',
+                creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                profileImage: '/placeholder.svg'
+              };
+              setUser(newUser);
+              setIsLoading(false);
+            }
           }
         } else {
           if (mounted) setIsLoading(false);

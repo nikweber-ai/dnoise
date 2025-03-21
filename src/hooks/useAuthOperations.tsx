@@ -29,7 +29,7 @@ export const useAuthOperations = (
       if (error) {
         console.error("Login error:", error);
         setError(error.message);
-        toast.error(t(error.message));
+        toast.error(t('Login failed. Please try again.'));
         setIsLoading(false);
         return false;
       }
@@ -39,32 +39,59 @@ export const useAuthOperations = (
         
         // Fetch additional user profile if needed
         if (data.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .maybeSingle();
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .maybeSingle();
+              
+            if (profileError) {
+              console.error('Error fetching user profile:', profileError);
+              // Continue anyway, we can still set basic user info
+            }
             
-          const isAdmin = profile?.is_admin || false;
-          
-          const newUser: User = {
-            id: data.user.id,
-            email: data.user.email || '',
-            name: profile?.name || data.user.user_metadata?.name,
-            isAdmin,
-            apiKey: profile?.api_key || '',
-            models: profile?.models || ['1', '2', '3', '4'],
-            highlightColor: profile?.highlight_color || '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            profileImage: profile?.profile_image || '/placeholder.svg'
-          };
-          
-          setUser(newUser);
+            const isAdmin = profile?.is_admin || false;
+            
+            const newUser: User = {
+              id: data.user.id,
+              email: data.user.email || '',
+              name: profile?.name || data.user.user_metadata?.name || '',
+              isAdmin,
+              apiKey: profile?.api_key || '',
+              models: profile?.models || ['1', '2', '3', '4'],
+              highlightColor: profile?.highlight_color || '#ff653a',
+              creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              profileImage: profile?.profile_image || '/placeholder.svg'
+            };
+            
+            setUser(newUser);
+            setSession(data.session);
+            
+            toast.success(t('Signed in successfully!'));
+            return true;
+          } catch (err) {
+            console.error('Error processing profile data:', err);
+            // Continue with basic user authentication
+            setUser({
+              id: data.user.id,
+              email: data.user.email || '',
+              isAdmin: false,
+              models: ['1', '2', '3', '4'],
+              highlightColor: '#ff653a',
+              creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              profileImage: '/placeholder.svg'
+            });
+            setSession(data.session);
+            toast.success(t('Signed in successfully!'));
+            return true;
+          }
+        } else {
+          // Just set the session if we have it
           setSession(data.session);
+          toast.success(t('Signed in successfully!'));
+          return true;
         }
-        
-        toast.success(t('Signed in successfully!'));
-        return true;
       }
       
       setError(t('Login failed. No session returned.'));
