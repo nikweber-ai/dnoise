@@ -12,14 +12,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const { images } = useImageGeneration();
-  const { favoriteImages } = useFavorites();
+  const { useGenerationHistory } = useImageGeneration();
+  const { useFavoriteImages } = useFavorites();
+  
+  // Call the query hooks to get the data
+  const { data: images } = useGenerationHistory();
+  const { data: favoriteImages } = useFavoriteImages();
 
   if (!user) return null;
 
   // Get recent generations and favorite count
-  const recentGenerations = images?.data?.slice(0, 4) || [];
-  const favoriteCount = favoriteImages?.data?.length || 0;
+  const recentGenerations = images?.slice(0, 4) || [];
+  const favoriteCount = favoriteImages?.length || 0;
 
   // Function to truncate prompt text
   const truncatePrompt = (prompt: string, maxLength = 50) => {
