@@ -8,6 +8,7 @@ import { PlusCircle, Sparkles, History as HistoryIcon, Star } from 'lucide-react
 import { useImageGeneration } from '@/hooks/useImageGeneration';
 import { useFavorites } from '@/hooks/useFavorites';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
   const { user, isAdmin } = useAuth();
@@ -16,8 +17,8 @@ const Dashboard = () => {
   const { useFavoriteImages } = useFavorites();
   
   // Call the query hooks to get the data
-  const { data: images } = useGenerationHistory();
-  const { data: favoriteImages } = useFavoriteImages();
+  const { data: images, isLoading: isLoadingImages } = useGenerationHistory();
+  const { data: favoriteImages, isLoading: isLoadingFavorites } = useFavoriteImages();
 
   if (!user) return null;
 
@@ -99,7 +100,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Access your saved favorite generations with {favoriteCount} saved items
+              Access your saved favorite generations with {isLoadingFavorites ? '...' : favoriteCount} saved items
             </p>
             <Button 
               onClick={() => navigate('/favorites')} 
@@ -121,7 +122,20 @@ const Dashboard = () => {
           </Button>
         </div>
         
-        {recentGenerations.length > 0 ? (
+        {isLoadingImages ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((index) => (
+              <Card key={index} className="overflow-hidden bg-card/40 backdrop-blur-sm">
+                <div className="aspect-square w-full overflow-hidden">
+                  <Skeleton className="h-full w-full" />
+                </div>
+                <CardContent className="p-3">
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : recentGenerations.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {recentGenerations.map((image) => (
               <Card key={image.id} className="overflow-hidden bg-card/40 backdrop-blur-sm hover:bg-card/60 transition-colors">
