@@ -31,7 +31,12 @@ export const useProfileOperations = (
         return;
       }
       
-      setUser(prev => prev ? { ...prev, ...userData } : null);
+      // Fix the type issue by properly handling the user update
+      if (user) {
+        const updatedUser: User = { ...user, ...userData };
+        setUser(updatedUser);
+      }
+      
       toast.success(t('Profile updated successfully'));
     } catch (error) {
       console.error('Error updating user:', error);
@@ -54,7 +59,12 @@ export const useProfileOperations = (
         return;
       }
       
-      setUser(prev => prev ? { ...prev, profileImage: imageUrl } : null);
+      // Fix the type issue by properly handling the user update
+      if (user) {
+        const updatedUser: User = { ...user, profileImage: imageUrl };
+        setUser(updatedUser);
+      }
+      
       toast.success(t('Profile image updated successfully'));
     } catch (error) {
       console.error('Error updating profile image:', error);
