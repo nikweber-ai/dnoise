@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -23,16 +23,9 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignUp = () => {
-  const { signUp, user, loading } = useAuth();
+  const { signUp, loading } = useAuth();
   const navigate = useNavigate();
-  
-  // Check if user is already authenticated and redirect
-  useEffect(() => {
-    if (user && !loading) {
-      console.log("User already authenticated, navigating to dashboard");
-      navigate('/dashboard', { replace: true });
-    }
-  }, [user, loading, navigate]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,25 +37,23 @@ const SignUp = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
       console.log("Attempting to sign up with:", data.email);
-      
-      // Disable form during submission
-      form.formState.isSubmitting = true;
-      form.formState.isSubmitted = true;
       
       const success = await signUp(data.email, data.password);
       
       if (success) {
         toast.success("Account created successfully!");
-        // AuthRoute will handle redirection based on authentication state
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error("Sign up error:", error);
       toast.error("Failed to create account. Please try again.");
     } finally {
-      // Re-enable form
-      form.formState.isSubmitting = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -75,11 +66,6 @@ const SignUp = () => {
         </div>
       </div>
     );
-  }
-
-  // If already authenticated, don't render the form
-  if (user) {
-    return null; // useEffect will handle redirect
   }
 
   return (
@@ -152,9 +138,9 @@ const SignUp = () => {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={loading}
+                  disabled={isSubmitting}
                 >
-                  {form.formState.isSubmitting ? 'Creating account...' : 'Create account'}
+                  {isSubmitting ? 'Creating account...' : 'Create account'}
                 </Button>
               </form>
             </Form>

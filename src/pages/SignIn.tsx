@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,19 +31,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignIn = () => {
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
-
-  // Check if user is already authenticated and redirect
-  useEffect(() => {
-    if (user && !authLoading) {
-      console.log("User already authenticated, navigating to dashboard");
-      navigate('/dashboard', { replace: true });
-    }
-  }, [user, authLoading, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,7 +57,7 @@ const SignIn = () => {
       
       if (success) {
         console.log("Sign-in successful!");
-        // Don't navigate here - AuthRoute will handle it based on auth state
+        navigate('/dashboard');
       } else {
         console.log("Sign-in failed");
         // Error is already shown by the useAuth hook
@@ -103,11 +96,6 @@ const SignIn = () => {
         </div>
       </div>
     );
-  }
-
-  // If already authenticated, don't render the form at all
-  if (user) {
-    return null; // useEffect will handle the redirect
   }
 
   return (

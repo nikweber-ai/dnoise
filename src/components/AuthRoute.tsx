@@ -17,14 +17,6 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
 }) => {
   const { user, loading } = useAuth();
   
-  console.info('AuthRoute rendering:', {
-    requireAuth,
-    requireAdmin,
-    loading,
-    authenticated: !!user,
-    isAdmin: user?.isAdmin || false
-  });
-
   // Show loading state when authentication is being determined
   if (loading) {
     return (
@@ -36,29 +28,29 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
-  // Determine authentication state
-  const authenticated = !!user;
+  // Simple auth checks
+  const isAuthenticated = !!user;
   const isAdmin = user?.isAdmin ?? false;
 
-  // Handle required authentication but user is not authenticated
-  if (requireAuth && !authenticated) {
-    console.info('Not authenticated, redirecting to sign-in');
+  // Route requires authentication but user is not authenticated
+  if (requireAuth && !isAuthenticated) {
+    console.log('Not authenticated, redirecting to sign-in');
     return <Navigate to="/sign-in" replace />;
   }
 
-  // Handle required admin privileges but user is not admin
-  if (requireAdmin && !isAdmin) {
-    console.info('Not admin, redirecting to dashboard');
+  // Route requires admin but user is not admin
+  if (requireAuth && requireAdmin && !isAdmin) {
+    console.log('Not admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Handle public routes when user is already authenticated
-  if (!requireAuth && authenticated) {
-    console.info('Already authenticated, redirecting to dashboard');
+  // Public route but user is already authenticated
+  if (!requireAuth && isAuthenticated) {
+    console.log('Already authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Render with layout for authenticated routes
+  // Render protected routes with Layout
   if (requireAuth) {
     return (
       <Layout>
@@ -67,6 +59,6 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
-  // Render without layout for public routes
+  // Render public routes without Layout
   return <Outlet />;
 };
