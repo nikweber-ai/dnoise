@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -22,8 +23,16 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const SignUp = () => {
-  const { signUp, loading, error } = useAuth();
+  const { signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (user && !loading) {
+      console.log("User already authenticated, navigating to dashboard");
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -35,9 +44,36 @@ const SignUp = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
-    await signUp(data.email, data.password);
-    navigate('/dashboard');
+    try {
+      console.log("Attempting to sign up with:", data.email);
+      const success = await signUp(data.email, data.password);
+      
+      if (success) {
+        toast.success("Account created successfully!");
+        // On successful signup, if email verification is enabled, we'll remain on this page
+        // If not, the session will be created and AuthRoute will handle the redirect
+      }
+    } catch (error) {
+      console.error("Sign up error:", error);
+      toast.error("Failed to create account. Please try again.");
+    }
   };
+
+  // If loading, show a spinner
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin-slow text-primary">
+          <div className="h-12 w-12 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If already authenticated, don't render the form
+  if (user) {
+    return null; // useEffect will handle redirect
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
@@ -111,15 +147,10 @@ const SignUp = () => {
                   className="w-full" 
                   disabled={loading}
                 >
-                  {loading ? 'Creating account...' : 'Create account'}
+                  {form.formState.isSubmitting ? 'Creating account...' : 'Create account'}
                 </Button>
               </form>
             </Form>
-            {error && (
-              <div className="mt-4 text-sm font-medium text-destructive text-center">
-                {error}
-              </div>
-            )}
           </CardContent>
           <CardFooter className="flex justify-center">
             <div className="text-sm text-muted-foreground">

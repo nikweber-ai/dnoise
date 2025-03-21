@@ -21,11 +21,11 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     requireAuth,
     requireAdmin,
     loading,
-    user: !!user,
+    authenticated: !!user,
     isAdmin: user?.isAdmin || false
   });
 
-  // Show loading indicator for a shorter time
+  // Show consistent loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -43,7 +43,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   // Handle authentication requirements
   if (requireAuth && !authenticated) {
     console.info('Not authenticated, redirecting to sign-in');
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/sign-in" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
@@ -53,7 +53,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
 
   if (!requireAuth && authenticated) {
     console.info('Already authenticated, redirecting to dashboard');
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Render with layout for authenticated routes

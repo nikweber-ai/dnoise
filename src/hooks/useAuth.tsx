@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -56,14 +55,13 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [session, setSession] = useState<any>(null);
   const { t } = useTranslation();
 
-  // Add a timeout to prevent infinite loading state
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (isLoading) {
         console.log("Auth loading timeout reached - forcing load completion");
         setIsLoading(false);
       }
-    }, 3000); // 3 second timeout (reduced from 5)
+    }, 2000);
 
     return () => clearTimeout(loadingTimeout);
   }, [isLoading]);
@@ -74,7 +72,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     
     const initAuth = async () => {
       try {
-        // Set up auth state listener first
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log("Auth state changed:", event, !!newSession);
@@ -82,37 +79,38 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             if (!mounted) return;
             
             try {
-              setSession(newSession);
-              
-              if (newSession?.user) {
-                console.log("User found in session, fetching profile");
-                // Get user profile from database
-                const { data: profile, error: profileError } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', newSession.user.id)
-                  .maybeSingle();
+              if (newSession) {
+                setSession(newSession);
+                
+                if (newSession.user) {
+                  console.log("User found in session, fetching profile");
+                  const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', newSession.user.id)
+                    .maybeSingle();
+                    
+                  if (profileError && profileError.code !== 'PGRST116') {
+                    console.error('Error fetching user profile:', profileError);
+                  }
                   
-                if (profileError && profileError.code !== 'PGRST116') {
-                  console.error('Error fetching user profile:', profileError);
+                  const isAdmin = newSession.user.email?.includes('admin') || false;
+                  
+                  setUser({
+                    id: newSession.user.id,
+                    email: newSession.user.email || '',
+                    name: profile?.name,
+                    isAdmin,
+                    apiKey: profile?.api_key,
+                    models: ['1', '2', '3', '4'],
+                    highlightColor: '#ff653a',
+                    creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    profileImage: profile?.profile_image || '/placeholder.svg'
+                  });
                 }
-                
-                // Check if user is admin (if email includes "admin")
-                const isAdmin = newSession.user.email?.includes('admin') || false;
-                
-                setUser({
-                  id: newSession.user.id,
-                  email: newSession.user.email || '',
-                  name: profile?.name,
-                  isAdmin,
-                  apiKey: profile?.api_key,
-                  models: ['1', '2', '3', '4'], // Default models
-                  highlightColor: '#ff653a',
-                  creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                  profileImage: profile?.profile_image || '/placeholder.svg'
-                });
               } else {
                 console.log("No session, clearing user");
+                setSession(null);
                 setUser(null);
               }
             } catch (err) {
@@ -123,7 +121,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           }
         );
 
-        // Then check for existing session
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -139,7 +136,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         
         if (data.session?.user) {
           try {
-            // Get user profile from database
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('*')
@@ -150,7 +146,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check if user is admin (if email includes "admin")
             const isAdmin = data.session.user.email?.includes('admin') || false;
             
             if (mounted) {
@@ -161,7 +156,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                 name: profile?.name,
                 isAdmin,
                 apiKey: profile?.api_key,
-                models: ['1', '2', '3', '4'], // Default models
+                models: ['1', '2', '3', '4'],
                 highlightColor: '#ff653a',
                 creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 profileImage: profile?.profile_image || '/placeholder.svg'
@@ -173,7 +168,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             if (mounted) setIsLoading(false);
           }
         } else {
-          // Ensure loading state is updated even if no session is found
           if (mounted) setIsLoading(false);
         }
       } catch (err) {
@@ -194,12 +188,15 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError(null);
     
     try {
+      console.log(`Attempting to login with email: ${email}`);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
+        console.error("Login error:", error);
         setError(error.message);
         toast.error(error.message);
         setIsLoading(false);
@@ -207,14 +204,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       }
       
       console.log("Login successful:", !!data.user);
+      toast.success(t('Signed in successfully!'));
       
-      // Auth state change listener will handle setting the user
       setIsLoading(false);
       return true;
     } catch (error: any) {
+      console.error("Login exception:", error);
       setError(t('Login failed. Please try again.'));
       toast.error(t('Login failed. Please try again.'));
-      console.error("Login error:", error);
       setIsLoading(false);
       return false;
     }
@@ -225,6 +222,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError(null);
     
     try {
+      console.log(`Attempting to register with email: ${email}`);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -236,16 +235,23 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       });
       
       if (error) {
+        console.error("Registration error:", error);
         setError(error.message);
         toast.error(error.message);
         setIsLoading(false);
         return false;
       }
       
-      toast.success(t('Registration successful! Please check your email to confirm your account.'));
+      if (data.session) {
+        toast.success(t('Registration successful! You are now signed in.'));
+      } else {
+        toast.success(t('Registration successful! Please check your email to confirm your account.'));
+      }
+      
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Registration exception:", error);
       setError(t('Registration failed. Please try again.'));
       toast.error(t('Registration failed. Please try again.'));
       setIsLoading(false);
@@ -254,11 +260,23 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
-      await supabase.auth.signOut();
-      // Auth state change listener will handle clearing the user
+      console.log("Attempting to sign out");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error(t('Failed to sign out. Please try again.'));
+      } else {
+        setUser(null);
+        setSession(null);
+        toast.success(t('Signed out successfully'));
+      }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout exception:', error);
+      toast.error(t('Failed to sign out. Please try again.'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -320,7 +338,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     if (!user) return;
     
     try {
-      // Update in Supabase profiles table
       const { data, error } = await supabase
         .from('profiles')
         .update({
@@ -336,7 +353,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return;
       }
       
-      // Update local state
       setUser(prev => prev ? { ...prev, ...userData } : null);
       toast.success(t('Profile updated successfully'));
     } catch (error) {
@@ -349,7 +365,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     if (!user) return;
     
     try {
-      // Update in Supabase profiles table
       const { data, error } = await supabase
         .from('profiles')
         .update({ profile_image: imageUrl })
@@ -361,7 +376,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return;
       }
       
-      // Update local state
       setUser(prev => prev ? { ...prev, profileImage: imageUrl } : null);
       toast.success(t('Profile image updated successfully'));
     } catch (error) {
@@ -375,7 +389,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError(null);
     
     try {
-      // First, verify the current password by trying to sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: user?.email || '',
         password: currentPassword
@@ -388,7 +401,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      // If verification succeeded, update the password
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -416,7 +428,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setError(null);
     
     try {
-      // First, verify the current password by trying to sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: user?.email || '',
         password: currentPassword
@@ -429,7 +440,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      // If verification succeeded, update the email
       const { data, error } = await supabase.auth.updateUser({
         email: newEmail
       });
@@ -441,7 +451,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      // Also update in profiles table
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ email: newEmail })
@@ -476,7 +485,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     updatePassword,
     updateEmail,
     updateProfileImage,
-    // Alias functions to match component usage
     signIn: login,
     signUp: register,
     signOut: logout,

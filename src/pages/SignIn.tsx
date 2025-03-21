@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,8 +37,13 @@ const SignIn = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
 
-  // Don't use useEffect for redirection to avoid race conditions
-  // We'll handle redirections after successful login
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (user && !authLoading) {
+      console.log("User already authenticated, navigating to dashboard");
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,34 +54,26 @@ const SignIn = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
+    if (isLoading) return; // Prevent multiple submissions
+    
     setIsLoading(true);
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Special case for admin account with default password
+      // Special case for admin account
       if (data.email.includes('admin') && data.password === 'adminadmin') {
         console.log("Attempting admin sign in");
-        // Attempt to sign in with admin credentials
-        const success = await signIn(data.email, data.password);
-        if (success) {
-          console.log("Admin sign-in successful, navigating to dashboard");
-          toast.success("Signed in successfully!");
-          navigate('/dashboard', { replace: true });
-        } else {
-          toast.error("Failed to sign in as admin");
-        }
-        setIsLoading(false);
-        return;
       }
       
-      // Regular sign in
+      // Attempt to sign in
       const success = await signIn(data.email, data.password);
+      
       if (success) {
         console.log("Sign-in successful, navigating to dashboard");
-        toast.success("Signed in successfully!");
-        navigate('/dashboard', { replace: true });
+        // We don't need to navigate here, the AuthRoute component will handle the redirect
+        // based on the authenticated state. This avoids potential race conditions.
       } else {
-        toast.error("Failed to sign in. Please check your credentials.");
+        console.log("Sign-in failed");
       }
     } catch (error) {
       console.error("Sign in error:", error);
@@ -103,14 +100,7 @@ const SignIn = () => {
   const appName = systemSettings.appName || 'GenHub';
   const logoUrl = systemSettings.logoUrl;
 
-  // If already authenticated and not in loading state, redirect to dashboard
-  if (user && !authLoading) {
-    console.log("User already authenticated, navigating to dashboard");
-    navigate('/dashboard', { replace: true });
-    return null;
-  }
-
-  // Don't render the login form if we're already authenticated
+  // If we're in a loading state, show the spinner
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,6 +109,11 @@ const SignIn = () => {
         </div>
       </div>
     );
+  }
+
+  // If already authenticated, don't render the form at all
+  if (user) {
+    return null; // useEffect will handle the redirect
   }
 
   return (
@@ -200,7 +195,7 @@ const SignIn = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
               {isLoading ? t('Signing in...') : t('Sign in')}
             </Button>
 
