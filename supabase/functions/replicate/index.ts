@@ -14,13 +14,15 @@ serve(async (req) => {
   }
 
   try {
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY')
-    if (!REPLICATE_API_KEY) {
-      throw new Error('REPLICATE_API_KEY is not set')
-    }
-
+    // Parse request
     const body = await req.json()
-    const { prompt, negativePrompt, width, height, seed, model, numOutputs, aspectRatio, modelVersion, loraWeights, loraScale } = body
+    const { prompt, negativePrompt, width, height, seed, model, numOutputs, aspectRatio, modelVersion, loraWeights, loraScale, apiKey } = body
+
+    // Check if API key is provided in the request (the user's personal key)
+    const REPLICATE_API_KEY = apiKey || Deno.env.get('REPLICATE_API_KEY')
+    if (!REPLICATE_API_KEY) {
+      throw new Error('No API key provided. Please add your Replicate API key in your profile settings.')
+    }
 
     if (!prompt) {
       return new Response(

@@ -49,7 +49,7 @@ export const useImageGeneration = () => {
   // Generate images
   const generateMutation = useMutation({
     mutationFn: async (params: GenerationParams) => {
-      // Check if user is admin (doesn't need API key) or has an API key
+      // Check if user is logged in
       if (!user) {
         throw new Error('You must be logged in to generate images');
       }
@@ -66,7 +66,7 @@ export const useImageGeneration = () => {
         throw new Error('Failed to fetch your profile. Please try again.');
       }
       
-      if (!user.isAdmin && !profile.api_key) {
+      if (!profile.api_key) {
         throw new Error('Replicate API key not set. Please add your API key in your profile settings.');
       }
       
@@ -82,7 +82,8 @@ export const useImageGeneration = () => {
           numOutputs: params.num_outputs || params.batchSize || 1,
           aspectRatio: params.aspect_ratio || "1:1",
           loraWeights: params.lora_weights,
-          loraScale: params.lora_scale || 1
+          loraScale: params.lora_scale || 1,
+          apiKey: profile.api_key // Pass the user's API key to the edge function
         }
       });
       
@@ -116,7 +117,7 @@ export const useImageGeneration = () => {
           }
           
           return {
-            id: uuidv4(),
+            id: insertData && insertData[0] ? insertData[0].id : uuidv4(),
             url: img.url,
             prompt: img.prompt,
             negativePrompt: img.negativePrompt,
