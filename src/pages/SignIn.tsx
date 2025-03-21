@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -60,20 +59,15 @@ const SignIn = () => {
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Special case for admin account
-      if (data.email.includes('admin') && data.password === 'adminadmin') {
-        console.log("Attempting admin sign in");
-      }
-      
       // Attempt to sign in
       const success = await signIn(data.email, data.password);
       
       if (success) {
-        console.log("Sign-in successful, navigating to dashboard");
-        // We don't need to navigate here, the AuthRoute component will handle the redirect
-        // based on the authenticated state. This avoids potential race conditions.
+        console.log("Sign-in successful!");
+        // Don't navigate here - AuthRoute will handle it based on auth state
       } else {
         console.log("Sign-in failed");
+        // Error is already shown by the useAuth hook
       }
     } catch (error) {
       console.error("Sign in error:", error);

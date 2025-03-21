@@ -25,7 +25,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     isAdmin: user?.isAdmin || false
   });
 
-  // Show consistent loading state
+  // Show loading state when authentication is being determined
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -36,21 +36,23 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
-  // Get authentication state
+  // Determine authentication state
   const authenticated = !!user;
   const isAdmin = user?.isAdmin ?? false;
 
-  // Handle authentication requirements
+  // Handle required authentication but user is not authenticated
   if (requireAuth && !authenticated) {
     console.info('Not authenticated, redirecting to sign-in');
     return <Navigate to="/sign-in" replace />;
   }
 
+  // Handle required admin privileges but user is not admin
   if (requireAdmin && !isAdmin) {
     console.info('Not admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Handle public routes when user is already authenticated
   if (!requireAuth && authenticated) {
     console.info('Already authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;

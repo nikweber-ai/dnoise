@@ -46,16 +46,23 @@ const SignUp = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       console.log("Attempting to sign up with:", data.email);
+      
+      // Disable form during submission
+      form.formState.isSubmitting = true;
+      form.formState.isSubmitted = true;
+      
       const success = await signUp(data.email, data.password);
       
       if (success) {
         toast.success("Account created successfully!");
-        // On successful signup, if email verification is enabled, we'll remain on this page
-        // If not, the session will be created and AuthRoute will handle the redirect
+        // AuthRoute will handle redirection based on authentication state
       }
     } catch (error) {
       console.error("Sign up error:", error);
       toast.error("Failed to create account. Please try again.");
+    } finally {
+      // Re-enable form
+      form.formState.isSubmitting = false;
     }
   };
 
