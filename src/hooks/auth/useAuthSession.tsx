@@ -72,9 +72,11 @@ export const useAuthSession = (
           if (mounted) setIsLoading(false);
         }
 
-        // Return a cleanup function to remove the subscription
+        // Return a cleanup function for subscription
         return () => {
-          subscription.unsubscribe();
+          if (subscription) {
+            subscription.unsubscribe();
+          }
         };
       } catch (err) {
         console.error("Error in auth initialization:", err);
@@ -85,10 +87,12 @@ export const useAuthSession = (
       }
     };
 
+    // Execute auth listener initialization
     const cleanup = initAuthListener();
 
     return () => {
       mounted = false;
+      // Use the cleanup function if it exists and is a function
       if (cleanup && typeof cleanup === 'function') {
         cleanup();
       }

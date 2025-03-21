@@ -27,10 +27,8 @@ export const useLoginOperations = (
         email,
         password,
         options: {
-          // Ensure session is persisted properly
-          session: {
-            persistSession: true,
-          }
+          // Remove the invalid 'session' property
+          persistSession: true
         }
       });
       
