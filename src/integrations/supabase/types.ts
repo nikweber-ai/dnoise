@@ -9,7 +9,86 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      generated_images: {
+        Row: {
+          created_at: string
+          height: number | null
+          id: string
+          is_favorite: boolean | null
+          model: string
+          negative_prompt: string | null
+          prompt: string
+          seed: number | null
+          url: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model: string
+          negative_prompt?: string | null
+          prompt: string
+          seed?: number | null
+          url: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model?: string
+          negative_prompt?: string | null
+          prompt?: string
+          seed?: number | null
+          url?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_images_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          profile_image: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name?: string | null
+          profile_image?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          profile_image?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

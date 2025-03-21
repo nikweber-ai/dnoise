@@ -4,10 +4,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useModelSelection } from '@/hooks/useModels';
-import { useImageGeneration, downloadImage } from '@/hooks/useImageGeneration';
+import { useImageGeneration, downloadImage, GeneratedImage } from '@/hooks/useImageGeneration';
 import { useAuth } from '@/hooks/useAuth';
-import { Model, GeneratedImage } from '@/services/api';
-import { Download, RefreshCw, Zap, Image, BookmarkPlus, Bookmark } from 'lucide-react';
+import { Model } from '@/services/api';
+import { Download, RefreshCw, Zap, Image, BookmarkPlus, Bookmark, Expand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -41,11 +41,14 @@ import { toast } from 'sonner';
 import { useFavorites } from '@/hooks/useFavorites';
 import { usePromptTemplates } from '@/hooks/usePromptTemplates';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 const aspectRatioPresets = [
   { name: '1:1', value: '1:1', description: 'Square' },
@@ -78,6 +81,7 @@ const Generate = () => {
   const { toggleFavorite } = useFavorites();
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
 
   // Get prompt templates for the selected model
   const { templates: promptTemplates, isLoading: isLoadingTemplates, refetch: refetchTemplates } = usePromptTemplates(
@@ -142,11 +146,6 @@ const Generate = () => {
       return;
     }
 
-    if (!user.apiKey && !user.isAdmin) {
-      toast.error('Please set your Replicate API key in your profile');
-      return;
-    }
-
     const params = {
       prompt: values.prompt,
       model: values.model,
@@ -181,10 +180,21 @@ const Generate = () => {
 
   const handleToggleFavorite = (imageId: string) => {
     toggleFavorite(imageId);
+    setGeneratedImages(prev => 
+      prev.map(img => 
+        img.id === imageId 
+          ? { ...img, isFavorite: !img.isFavorite }
+          : img
+      )
+    );
   };
 
   const handleUseTemplate = (template: { prompt: string }) => {
     form.setValue('prompt', template.prompt);
+  };
+
+  const openImageDetail = (image: GeneratedImage) => {
+    setSelectedImage(image);
   };
 
   return (
@@ -467,7 +477,7 @@ const Generate = () => {
                   )}
                   <Button 
                     type="submit" 
-                    disabled={isGenerating || (!user?.isAdmin && !user?.apiKey)}
+                    disabled={isGenerating}
                     className="min-w-32"
                   >
                     {isGenerating ? (
@@ -505,57 +515,99 @@ const Generate = () => {
                   <p className="text-muted-foreground">Generating your images...</p>
                 </div>
               ) : generatedImages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {generatedImages.map((image) => (
-                    <div key={image.id} className="space-y-2">
-                      <div className="relative group rounded-lg overflow-hidden border bg-card shadow-sm">
-                        <img
-                          src={image.url}
-                          alt={image.prompt}
-                          className="w-full aspect-square object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleDownload(image)}
-                            className="rounded-full bg-white/20 hover:bg-white/40"
-                          >
-                            <Download className="h-5 w-5" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleToggleFavorite(image.id)}
-                            className="rounded-full bg-white/20 hover:bg-white/40"
-                          >
-                            {image.isFavorite ? 
-                              <Bookmark className="h-5 w-5 fill-current" /> : 
-                              <BookmarkPlus className="h-5 w-5" />
-                            }
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
+                <div className="space-y-6">
+                  {/* Main large image display */}
+                  <div className="space-y-2">
+                    <div className="relative group rounded-lg overflow-hidden border bg-card shadow-sm">
+                      <img
+                        src={generatedImages[0].url}
+                        alt={generatedImages[0].prompt}
+                        className="w-full aspect-square object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                         <Button 
                           variant="outline" 
-                          size="sm"
-                          className="text-xs h-7"
-                          onClick={() => handleUsePrompt(image.prompt)}
+                          size="icon"
+                          onClick={() => handleDownload(generatedImages[0])}
+                          className="rounded-full bg-white/20 hover:bg-white/40"
                         >
-                          Use Prompt
+                          <Download className="h-5 w-5" />
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm"
-                          className="text-xs h-7"
-                          onClick={() => handleUseSeed(image.seed)}
+                          size="icon"
+                          onClick={() => handleToggleFavorite(generatedImages[0].id)}
+                          className="rounded-full bg-white/20 hover:bg-white/40"
                         >
-                          Use Seed: {image.seed}
+                          {generatedImages[0].isFavorite ? 
+                            <Bookmark className="h-5 w-5 fill-current" /> : 
+                            <BookmarkPlus className="h-5 w-5" />
+                          }
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => openImageDetail(generatedImages[0])}
+                          className="rounded-full bg-white/20 hover:bg-white/40"
+                        >
+                          <Expand className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex flex-wrap gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => handleUsePrompt(generatedImages[0].prompt)}
+                      >
+                        Use Prompt
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => handleUseSeed(generatedImages[0].seed)}
+                      >
+                        Use Seed: {generatedImages[0].seed}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Gallery preview (if there are multiple images) */}
+                  {generatedImages.length > 1 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">All Generated Images</h3>
+                      <div className="grid grid-cols-4 gap-2">
+                        {generatedImages.map((image, index) => (
+                          <div key={image.id} className="relative group rounded-lg overflow-hidden border bg-card shadow-sm cursor-pointer">
+                            <img
+                              src={image.url}
+                              alt={`Generated image ${index + 1}`}
+                              className="w-full aspect-square object-cover"
+                              onClick={() => openImageDetail(image)}
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleFavorite(image.id);
+                                }}
+                                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/40"
+                              >
+                                {image.isFavorite ? 
+                                  <Bookmark className="h-3 w-3 fill-current" /> : 
+                                  <BookmarkPlus className="h-3 w-3" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 space-y-2 text-center">
@@ -570,6 +622,69 @@ const Generate = () => {
           </Card>
         </div>
       </div>
+
+      {/* Image detail dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Image Details</DialogTitle>
+            <DialogDescription>
+              Generated with {selectedImage?.model}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="rounded-lg overflow-hidden border">
+              <img
+                src={selectedImage?.url}
+                alt={selectedImage?.prompt}
+                className="w-full h-auto object-contain"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Prompt</h3>
+              <p className="text-sm text-muted-foreground p-2 bg-muted rounded-md">{selectedImage?.prompt}</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium">Seed</h3>
+                <p className="text-sm text-muted-foreground">{selectedImage?.seed}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium">Created</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedImage?.createdAt && new Date(selectedImage.createdAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button 
+                variant="outline"
+                onClick={() => selectedImage && handleDownload(selectedImage)}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+              <Button
+                variant={selectedImage?.isFavorite ? "default" : "outline"}
+                onClick={() => selectedImage && handleToggleFavorite(selectedImage.id)}
+              >
+                {selectedImage?.isFavorite ? 
+                  <Bookmark className="mr-2 h-4 w-4 fill-current" /> : 
+                  <BookmarkPlus className="mr-2 h-4 w-4" />
+                }
+                {selectedImage?.isFavorite ? 'Favorited' : 'Add to Favorites'}
+              </Button>
+              <DialogClose asChild>
+                <Button>Close</Button>
+              </DialogClose>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

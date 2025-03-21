@@ -1,7 +1,19 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+  isAdmin: boolean;
+  apiKey?: string;
+  models?: string[];
+  highlightColor?: string;
+  creditsReset?: string;
+  profileImage?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -13,10 +25,9 @@ interface AuthContextType {
   isAdmin: boolean;
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, password: string) => Promise<boolean>;
-  updateCurrentUser: (userData: Partial<User>) => void;
+  updateCurrentUser: (userData: Partial<User>) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   updateEmail: (currentPassword: string, newEmail: string) => Promise<boolean>;
-  // Add these properties to match usage in components
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, name?: string) => Promise<boolean>;
   signOut: () => void;
@@ -24,7 +35,7 @@ interface AuthContextType {
   error: string | null;
   creditsReset?: string;
   profileImage?: string;
-  updateProfileImage: (imageUrl: string) => void;
+  updateProfileImage: (imageUrl: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,200 +48,364 @@ export const useAuth = () => {
   return context;
 };
 
-const getStoredUser = (): User | null => {
-  try {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  } catch (error) {
-    console.error('Failed to parse user from localStorage', error);
-    localStorage.removeItem('user');
-    return null;
-  }
-};
-
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(getStoredUser());
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
-    const storedUser = getStoredUser();
-    setUser(storedUser);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setIsLoading(true);
+        
+        if (session?.user) {
+          // Get user profile from database
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching user profile:', profileError);
+          }
+          
+          // Check if user is admin (demo: if email includes "admin")
+          const isAdmin = session.user.email?.includes('admin') || false;
+          
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile?.name,
+            isAdmin,
+            apiKey: profile?.api_key,
+            models: ['1', '2', '3', '4'], // Default models
+            highlightColor: '#ff653a',
+            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            profileImage: profile?.profile_image || '/placeholder.svg'
+          });
+        } else {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      
+      if (session?.user) {
+        // Get user profile from database
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile, error: profileError }) => {
+            if (profileError && profileError.code !== 'PGRST116') {
+              console.error('Error fetching user profile:', profileError);
+            }
+            
+            // Check if user is admin (demo: if email includes "admin")
+            const isAdmin = session.user.email?.includes('admin') || false;
+            
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: profile?.name,
+              isAdmin,
+              apiKey: profile?.api_key,
+              models: ['1', '2', '3', '4'], // Default models
+              highlightColor: '#ff653a',
+              creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              profileImage: profile?.profile_image || '/placeholder.svg'
+            });
+            
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
-    // Mock authentication
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (email === 'user@example.com' && password === 'password') {
-          const mockUser: User = {
-            id: '1',
-            email: 'user@example.com',
-            isAdmin: false,
-            models: ['1', '2'],
-            highlightColor: '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-            profileImage: '/placeholder.svg'
-          };
-          setUser(mockUser);
-          localStorage.setItem('user', JSON.stringify(mockUser));
-          resolve(true);
-        } else if (email === 'admin@example.com' && password === 'admin123') { // Updated admin password
-          const mockAdmin: User = {
-            id: '2',
-            email: 'admin@example.com',
-            isAdmin: true,
-            apiKey: 'r8_example_admin_api_key',
-            models: ['1', '2', '3', '4'],
-            highlightColor: '#ff653a',
-            creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-            profileImage: '/placeholder.svg'
-          };
-          setUser(mockAdmin);
-          localStorage.setItem('user', JSON.stringify(mockAdmin));
-          resolve(true);
-        } else {
-          setError('Invalid email or password');
-          resolve(false);
-        }
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      // Auth state change listener will handle setting the user
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Login failed. Please try again.');
+      toast.error('Login failed. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const register = async (email: string, password: string, name?: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
-    // Mock registration
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser: User = {
-          id: '3',
-          email: email,
-          name: name,
-          isAdmin: false,
-          models: ['1', '2'],
-          highlightColor: '#ff653a',
-          creditsReset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-        };
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      toast.success('Registration successful! Please check your email to confirm your account.');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+      toast.error('Registration failed. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Auth state change listener will handle clearing the user
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const forgotPassword = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
-    // Mock forgot password
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Forgot password email sent to:', email);
-        toast.success(`Password reset link sent to ${email}`);
-        resolve(true);
+    
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      toast.success(`Password reset link sent to ${email}`);
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Failed to send reset email. Please try again.');
+      toast.error('Failed to send reset email. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const resetPassword = async (token: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
-    // Mock reset password
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Password reset with token:', token, 'and new password:', password);
-        toast.success('Password has been reset successfully');
-        resolve(true);
+    
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      toast.success('Password has been reset successfully');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Password reset failed. Please try again.');
+      toast.error('Password reset failed. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const updateCurrentUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const updateCurrentUser = async (userData: Partial<User>) => {
+    if (!user) return;
+    
+    try {
+      // Update in Supabase profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          api_key: userData.apiKey,
+          profile_image: userData.profileImage
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Failed to update profile');
+        return;
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...userData } : null);
       toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Failed to update profile');
     }
   };
 
-  const updateProfileImage = (imageUrl: string) => {
-    if (user) {
-      const updatedUser = { ...user, profileImage: imageUrl };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+  const updateProfileImage = async (imageUrl: string) => {
+    if (!user) return;
+    
+    try {
+      // Update in Supabase profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ profile_image: imageUrl })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('Error updating profile image:', error);
+        toast.error('Failed to update profile image');
+        return;
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, profileImage: imageUrl } : null);
       toast.success('Profile image updated successfully');
+    } catch (error) {
+      console.error('Error updating profile image:', error);
+      toast.error('Failed to update profile image');
     }
   };
 
-  // New function to update password
   const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Check if current password is correct - simplified for demo
-        if (
-          (user?.email === 'user@example.com' && currentPassword === 'password') ||
-          (user?.email === 'admin@example.com' && currentPassword === 'admin')
-        ) {
-          // Password updated successfully
-          toast.success('Password updated successfully');
-          resolve(true);
-        } else {
-          setError('Current password is incorrect');
-          toast.error('Current password is incorrect');
-          resolve(false);
-        }
+    try {
+      // First, verify the current password by trying to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword
+      });
+      
+      if (signInError) {
+        setError('Current password is incorrect');
+        toast.error('Current password is incorrect');
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      // If verification succeeded, update the password
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
+        setIsLoading(false);
+        return false;
+      }
+      
+      toast.success('Password updated successfully');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Failed to update password. Please try again.');
+      toast.error('Failed to update password. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  // New function to update email
   const updateEmail = async (currentPassword: string, newEmail: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Check if current password is correct - simplified for demo
-        if (
-          (user?.email === 'user@example.com' && currentPassword === 'password') ||
-          (user?.email === 'admin@example.com' && currentPassword === 'admin')
-        ) {
-          // Update the user's email
-          if (user) {
-            const updatedUser = { ...user, email: newEmail };
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            toast.success('Email updated successfully');
-            resolve(true);
-          } else {
-            setError('User not found');
-            toast.error('User not found');
-            resolve(false);
-          }
-        } else {
-          setError('Current password is incorrect');
-          toast.error('Current password is incorrect');
-          resolve(false);
-        }
+    try {
+      // First, verify the current password by trying to sign in
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword
+      });
+      
+      if (signInError) {
+        setError('Current password is incorrect');
+        toast.error('Current password is incorrect');
         setIsLoading(false);
-      }, 1000);
-    });
+        return false;
+      }
+      
+      // If verification succeeded, update the email
+      const { data, error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+      
+      if (error) {
+        setError(error.message);
+        toast.error(error.message);
+        setIsLoading(false);
+        return false;
+      }
+      
+      // Also update in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ email: newEmail })
+        .eq('id', user?.id);
+      
+      if (profileError) {
+        console.error('Error updating email in profile:', profileError);
+      }
+      
+      toast.success('Email updated successfully. Please check your new email to confirm the change.');
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      setError('Failed to update email. Please try again.');
+      toast.error('Failed to update email. Please try again.');
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const value = {
