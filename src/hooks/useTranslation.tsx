@@ -22,6 +22,10 @@ const translations: Translations = {
     'Login': 'Login',
     'Logout': 'Logout',
     'Register': 'Register',
+    'Forgot your password?': 'Forgot your password?',
+    'Don\'t have an account?': 'Don\'t have an account?',
+    'Sign in to your account to continue': 'Sign in to your account to continue',
+    'Signing in...': 'Signing in...',
     
     // Navigation
     'Dashboard': 'Dashboard',
@@ -46,12 +50,10 @@ const translations: Translations = {
     'Failed to fetch generation history': 'Failed to fetch generation history',
     
     // Profile
-    'Profile': 'Profile',
     'General Information': 'General Information',
     'Update your account details': 'Update your account details',
     'Name': 'Name',
     'This is the name that will be displayed on your profile': 'This is the name that will be displayed on your profile',
-    'Email': 'Email',
     'Change': 'Change',
     'Your email address is used for login and notifications': 'Your email address is used for login and notifications',
     'Save Changes': 'Save Changes',
@@ -67,13 +69,10 @@ const translations: Translations = {
     'Save Appearance': 'Save Appearance',
     'Security': 'Security',
     'Update your password and security settings': 'Update your password and security settings',
-    'Password': 'Password',
     'Change your password': 'Change your password',
     'Change Password': 'Change Password',
     'Language': 'Language',
     'Choose your language': 'Choose your language',
-    'English': 'English',
-    'Portuguese (Brazil)': 'Portuguese (Brazil)',
     
     // Languages
     'English': 'English',
@@ -88,6 +87,10 @@ const translations: Translations = {
     'Login': 'Entrar',
     'Logout': 'Sair',
     'Register': 'Cadastrar',
+    'Forgot your password?': 'Esqueceu sua senha?',
+    'Don\'t have an account?': 'Não tem uma conta?',
+    'Sign in to your account to continue': 'Entre na sua conta para continuar',
+    'Signing in...': 'Entrando...',
     
     // Navigation
     'Dashboard': 'Painel',
@@ -112,12 +115,10 @@ const translations: Translations = {
     'Failed to fetch generation history': 'Falha ao buscar histórico de geração',
     
     // Profile
-    'Profile': 'Perfil',
     'General Information': 'Informações Gerais',
     'Update your account details': 'Atualize os detalhes da sua conta',
     'Name': 'Nome',
     'This is the name that will be displayed on your profile': 'Este é o nome que será exibido no seu perfil',
-    'Email': 'Email',
     'Change': 'Alterar',
     'Your email address is used for login and notifications': 'Seu endereço de email é usado para login e notificações',
     'Save Changes': 'Salvar Alterações',
@@ -133,7 +134,6 @@ const translations: Translations = {
     'Save Appearance': 'Salvar Aparência',
     'Security': 'Segurança',
     'Update your password and security settings': 'Atualize sua senha e configurações de segurança',
-    'Password': 'Senha',
     'Change your password': 'Altere sua senha',
     'Change Password': 'Alterar Senha',
     'Language': 'Idioma',
