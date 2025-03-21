@@ -17,10 +17,12 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   redirectTo = requireAuth ? '/sign-in' : '/dashboard',
 }) => {
   const { user, loading, isAdmin } = useAuth();
+  
+  console.log("AuthRoute rendering:", { requireAuth, requireAdmin, loading, user: !!user, isAdmin });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <LoadingSpinner size="lg" className="mt-[-100px]" />
       </div>
     );
@@ -28,15 +30,20 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
 
   const authenticated = !!user;
   
+  console.log("Auth status:", { authenticated, isAdmin, redirectTo });
+  
   if (requireAuth && !authenticated) {
+    console.log("Not authenticated, redirecting to:", redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
+    console.log("Not admin, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
   if (!requireAuth && authenticated) {
+    console.log("Already authenticated, redirecting to:", redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
