@@ -78,20 +78,13 @@ export function Sidebar() {
     return null;
   }
 
-  // Get system settings for app name with localStorage persistence
+  // Get system settings for app name
   const getSystemSettings = () => {
     const settings = localStorage.getItem('appSettings');
     if (settings) {
       return JSON.parse(settings);
     }
-    
-    // Default settings
-    const defaultSettings = { appName: 'GenHub', logoUrl: null };
-    
-    // Save default settings to localStorage if not set
-    localStorage.setItem('appSettings', JSON.stringify(defaultSettings));
-    
-    return defaultSettings;
+    return { appName: 'GenHub', logoUrl: null };
   };
   
   const systemSettings = getSystemSettings();
