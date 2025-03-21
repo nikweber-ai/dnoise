@@ -16,30 +16,16 @@ serve(async (req) => {
   try {
     // Parse request
     const body = await req.json()
-    const { 
-      prompt, 
-      negativePrompt, 
-      width, 
-      height, 
-      seed, 
-      model, 
-      numOutputs, 
-      aspectRatio, 
-      modelVersion, 
-      loraWeights, 
-      loraScale, 
-      apiKey 
-    } = body
+    const { prompt, negativePrompt, width, height, seed, model, numOutputs, aspectRatio, modelVersion, loraWeights, loraScale, apiKey } = body
 
     // Check if user's personal API key is provided
     if (!apiKey) {
       throw new Error('You must provide your personal Replicate API key in your profile settings.')
     }
 
-    // Basic validation
     if (!prompt) {
       return new Response(
-        JSON.stringify({ success: false, error: "Missing required field: prompt" }),
+        JSON.stringify({ error: "Missing required field: prompt" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }

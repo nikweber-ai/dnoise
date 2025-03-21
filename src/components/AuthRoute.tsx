@@ -16,41 +16,38 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   requireAdmin = false,
   redirectTo = requireAuth ? '/sign-in' : '/dashboard',
 }) => {
-  const { user, loading, isAdmin } = useAuth();
-  
-  console.log("AuthRoute rendering:", { requireAuth, requireAdmin, loading, user: !!user, isAdmin });
+  const { user, loading } = useAuth();
 
-  // Wait until authentication state is determined
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <LoadingSpinner size="lg" className="mt-[-100px]" />
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  // Once loading is done, handle the authentication logic
-  if (requireAuth && !user) {
-    console.log("Not authenticated, redirecting to:", redirectTo);
-    return <Navigate to={redirectTo} replace />;
-  }
+  const authenticated = !!user;
+  const isAdmin = user?.isAdmin ?? false;
 
-  if (!requireAuth && user) {
-    console.log("Already authenticated, redirecting to:", redirectTo);
+  if (requireAuth && !authenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
-    console.log("Not admin, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Render the appropriate layout
-  return requireAuth ? (
-    <Layout>
-      <Outlet />
-    </Layout>
-  ) : (
-    <Outlet />
-  );
+  if (!requireAuth && authenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (requireAuth) {
+    return (
+      <Layout>
+        <Outlet />
+      </Layout>
+    );
+  }
+
+  return <Outlet />;
 };
