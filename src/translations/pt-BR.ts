@@ -42,6 +42,10 @@ export const ptBRTranslations = {
   'Users': 'Usuários',
   'Models': 'Modelos',
   'Settings': 'Configurações',
+  'Language': 'Idioma',
+  'Main': 'Principal',
+  'Admin': 'Admin',
+  'Logout': 'Sair',
   
   // Users Page
   'User List': 'Lista de Usuários',
@@ -58,7 +62,6 @@ export const ptBRTranslations = {
   'User updated successfully': 'Usuário atualizado com sucesso',
   'Failed to update user': 'Falha ao atualizar usuário',
   'Save Changes': 'Salvar Alterações',
-  'Admin': 'Admin',
   'Highlight Color': 'Cor de Destaque',
   'Color for UI accents in the user\'s interface': 'Cor para destaques na interface do usuário',
   'Administrator': 'Administrador',
@@ -70,10 +73,8 @@ export const ptBRTranslations = {
   'Create User': 'Criar Usuário',
   'Add a new user to the system': 'Adicionar um novo usuário ao sistema',
   'Name': 'Nome',
-  'Models': 'Modelos',
   
   // Profile Page
-  'Profile': 'Perfil',
   'General Information': 'Informações Gerais',
   'Update your account details': 'Atualize os detalhes da sua conta',
   'API Settings': 'Configurações de API',
@@ -87,7 +88,6 @@ export const ptBRTranslations = {
   'Profile image updated successfully': 'Imagem de perfil atualizada com sucesso',
   'Failed to update profile image': 'Falha ao atualizar imagem de perfil',
   'Replicate API Key': 'Chave de API Replicate',
-  'Password': 'Senha',
   'Change Password': 'Alterar Senha',
   'Current Password': 'Senha Atual',
   'New Password': 'Nova Senha',
@@ -102,9 +102,10 @@ export const ptBRTranslations = {
   'General': 'Geral',
   'Save API Key': 'Salvar Chave de API',
   'Save Appearance': 'Salvar Aparência',
-  'Save Changes': 'Salvar Alterações',
   'This is the name that will be displayed on your profile': 'Este é o nome que será exibido no seu perfil',
   'Your email address is used for login and notifications': 'Seu endereço de email é usado para login e notificações',
   'You need a Replicate API key to generate images': 'Você precisa de uma chave de API Replicate para gerar imagens',
   'Change your password': 'Alterar sua senha',
+  'English': 'Inglês',
+  'Portuguese (Brazil)': 'Português (Brasil)'
 }

@@ -42,6 +42,10 @@ export const enTranslations = {
   'Users': 'Users',
   'Models': 'Models',
   'Settings': 'Settings',
+  'Language': 'Language',
+  'Main': 'Main',
+  'Admin': 'Admin',
+  'Logout': 'Logout',
   
   // Users Page
   'User List': 'User List',
@@ -58,7 +62,6 @@ export const enTranslations = {
   'User updated successfully': 'User updated successfully',
   'Failed to update user': 'Failed to update user',
   'Save Changes': 'Save Changes',
-  'Admin': 'Admin',
   'Highlight Color': 'Highlight Color',
   'Color for UI accents in the user\'s interface': 'Color for UI accents in the user\'s interface',
   'Administrator': 'Administrator',
@@ -70,10 +73,8 @@ export const enTranslations = {
   'Create User': 'Create User',
   'Add a new user to the system': 'Add a new user to the system',
   'Name': 'Name',
-  'Models': 'Models',
   
   // Profile Page
-  'Profile': 'Profile',
   'General Information': 'General Information',
   'Update your account details': 'Update your account details',
   'API Settings': 'API Settings',
@@ -87,7 +88,6 @@ export const enTranslations = {
   'Profile image updated successfully': 'Profile image updated successfully',
   'Failed to update profile image': 'Failed to update profile image',
   'Replicate API Key': 'Replicate API Key',
-  'Password': 'Password',
   'Change Password': 'Change Password',
   'Current Password': 'Current Password',
   'New Password': 'New Password',
@@ -102,9 +102,10 @@ export const enTranslations = {
   'General': 'General',
   'Save API Key': 'Save API Key',
   'Save Appearance': 'Save Appearance',
-  'Save Changes': 'Save Changes',
   'This is the name that will be displayed on your profile': 'This is the name that will be displayed on your profile',
   'Your email address is used for login and notifications': 'Your email address is used for login and notifications',
   'You need a Replicate API key to generate images': 'You need a Replicate API key to generate images',
   'Change your password': 'Change your password',
+  'English': 'English',
+  'Portuguese (Brazil)': 'Portuguese (Brazil)'
 }
