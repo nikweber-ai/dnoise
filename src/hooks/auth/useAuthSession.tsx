@@ -72,7 +72,7 @@ export const useAuthSession = (
           if (mounted) setIsLoading(false);
         }
 
-        // Return a cleanup function for subscription
+        // Return a cleanup function to unsubscribe
         return () => {
           if (subscription) {
             subscription.unsubscribe();
@@ -88,13 +88,20 @@ export const useAuthSession = (
     };
 
     // Execute auth listener initialization
-    const cleanup = initAuthListener();
+    const cleanupFunction = initAuthListener();
 
+    // Return cleanup function for useEffect
     return () => {
       mounted = false;
-      // Use the cleanup function if it exists and is a function
-      if (cleanup && typeof cleanup === 'function') {
-        cleanup();
+      // Use the cleanup function if it exists
+      if (cleanupFunction instanceof Promise) {
+        cleanupFunction.then(cleanup => {
+          if (cleanup && typeof cleanup === 'function') {
+            cleanup();
+          }
+        }).catch(err => {
+          console.error("Error in cleanup function:", err);
+        });
       }
     };
   }, [setUser, setIsLoading, setError]);
