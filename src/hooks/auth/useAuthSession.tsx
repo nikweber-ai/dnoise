@@ -17,7 +17,7 @@ export const useAuthSession = (
     
     const initAuthListener = async () => {
       try {
-        // Set up the auth state change listener
+        // Set up the auth state change listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
             console.log("Auth state changed:", event, !!newSession);
@@ -41,7 +41,7 @@ export const useAuthSession = (
           }
         );
 
-        // Check for existing session
+        // THEN check for existing session
         const { data, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -71,6 +71,11 @@ export const useAuthSession = (
         } else {
           if (mounted) setIsLoading(false);
         }
+
+        // Return a cleanup function to remove the subscription
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (err) {
         console.error("Error in auth initialization:", err);
         if (mounted) {
@@ -80,10 +85,13 @@ export const useAuthSession = (
       }
     };
 
-    initAuthListener();
+    const cleanup = initAuthListener();
 
     return () => {
       mounted = false;
+      if (cleanup && typeof cleanup === 'function') {
+        cleanup();
+      }
     };
   }, [setUser, setIsLoading, setError]);
 

@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,21 +12,20 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user } = useAuth();
 
+  if (!user) return null;
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main 
-          className={cn(
-            "flex-1 transition-all duration-300 ease-in-out px-4 py-24 md:px-8 overflow-auto",
-            "md:ml-64"
-          )}
-        >
-          <div className="fade-in-element max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen flex flex-col w-full">
+        <div className="flex flex-1 overflow-hidden">
+          <AppSidebar />
+          <SidebarInset className="bg-background">
+            <div className="fade-in-element max-w-7xl mx-auto p-4 md:p-8">
+              {children}
+            </div>
+          </SidebarInset>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };

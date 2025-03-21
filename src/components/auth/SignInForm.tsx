@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -58,16 +59,23 @@ const SignInForm: React.FC<SignInFormProps> = ({ loginError, setLoginError }) =>
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Try multiple times if initial attempt fails
+      // Attempt login with additional retry logic
       let attempts = 0;
       let success = false;
       
       while (attempts < 2 && !success) {
         attempts++;
-        success = await signIn(data.email, data.password);
+        
+        try {
+          success = await signIn(data.email, data.password);
+        } catch (err) {
+          console.error(`Sign-in attempt ${attempts} failed with error:`, err);
+          // Continue to retry
+        }
         
         if (success) {
           console.log("Sign-in successful!");
+          toast.success(t('Sign in successful!'));
           navigate('/dashboard');
           return;
         } else if (attempts < 2) {
@@ -79,11 +87,13 @@ const SignInForm: React.FC<SignInFormProps> = ({ loginError, setLoginError }) =>
       
       if (!success) {
         console.log("All sign-in attempts failed");
-        setLoginError(t('Login failed after multiple attempts. Please check your credentials.'));
+        setLoginError(t('Login failed. Please check your credentials and try again.'));
+        toast.error(t('Login failed. Please check your credentials.'));
       }
     } catch (error: any) {
       console.error("Sign in error:", error);
       setLoginError(typeof error === 'string' ? error : error?.message || t('An unexpected error occurred'));
+      toast.error(t('Login failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }

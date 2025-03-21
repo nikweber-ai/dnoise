@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/Layout';
+import { toast } from 'sonner';
 
 interface AuthRouteProps {
   requireAuth: boolean;
@@ -15,7 +16,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   requireAdmin = false,
   redirectTo = requireAuth ? '/sign-in' : '/dashboard',
 }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, error } = useAuth();
   
   // Show loading state when authentication is being determined
   if (loading) {
@@ -41,6 +42,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   // Route requires admin but user is not admin
   if (requireAuth && requireAdmin && !isAdmin) {
     console.log('Not admin, redirecting to dashboard');
+    toast.error('You do not have permission to access this page');
     return <Navigate to="/dashboard" replace />;
   }
 

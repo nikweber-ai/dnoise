@@ -25,7 +25,13 @@ export const useLoginOperations = (
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          // Ensure session is persisted properly
+          session: {
+            persistSession: true,
+          }
+        }
       });
       
       if (error) {
