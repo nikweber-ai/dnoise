@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AuthProvider from '@/hooks/useAuth';
 import { TranslationProvider } from '@/hooks/useTranslation';
@@ -65,10 +65,10 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <TranslationProvider>
+        <TranslationProvider>
+          <ThemeProvider>
             <AuthProvider>
-              <ThemeProvider>
+              <Router>
                 <div className="app-container">
                   <Routes>
                     {/* Public routes */}
@@ -102,10 +102,10 @@ function App() {
                 </div>
                 <SonnerToaster position="top-right" richColors />
                 <Toaster />
-              </ThemeProvider>
+              </Router>
             </AuthProvider>
-          </TranslationProvider>
-        </Router>
+          </ThemeProvider>
+        </TranslationProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

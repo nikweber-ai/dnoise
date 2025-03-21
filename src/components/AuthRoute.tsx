@@ -20,7 +20,7 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   
   console.log("AuthRoute rendering:", { requireAuth, requireAdmin, loading, user: !!user, isAdmin });
 
-  // Show loading spinner while authentication state is being determined
+  // Wait until authentication state is determined
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -29,15 +29,13 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
     );
   }
 
-  const authenticated = !!user;
-  
-  // Handle authentication redirects
-  if (requireAuth && !authenticated) {
+  // Once loading is done, handle the authentication logic
+  if (requireAuth && !user) {
     console.log("Not authenticated, redirecting to:", redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (!requireAuth && authenticated) {
+  if (!requireAuth && user) {
     console.log("Already authenticated, redirecting to:", redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
@@ -48,13 +46,11 @@ export const AuthRoute: React.FC<AuthRouteProps> = ({
   }
 
   // Render the appropriate layout
-  if (requireAuth) {
-    return (
-      <Layout>
-        <Outlet />
-      </Layout>
-    );
-  }
-
-  return <Outlet />;
+  return requireAuth ? (
+    <Layout>
+      <Outlet />
+    </Layout>
+  ) : (
+    <Outlet />
+  );
 };
