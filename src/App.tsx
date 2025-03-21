@@ -36,9 +36,28 @@ const queryClient = new QueryClient({
       staleTime: 30000, // 30 seconds
       refetchOnWindowFocus: false,
       refetchOnMount: true,
+      gcTime: 1000 * 60 * 10, // 10 minutes
     },
   },
 });
+
+// Create a global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error);
+});
+
+// Suppress some known harmless errors from third-party scripts
+const originalConsoleError = console.error;
+console.error = function(...args) {
+  // Filter out known harmless errors
+  if (
+    args[0]?.includes?.('Failed to define property ethereum') ||
+    args[0]?.includes?.('Cannot redefine property: ethereum')
+  ) {
+    return;
+  }
+  return originalConsoleError.apply(this, args);
+};
 
 function App() {
   console.log("App rendering");
