@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -47,26 +47,37 @@ const SignIn = () => {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     
-    // Special case for admin account with default password
-    if (data.email.includes('admin') && data.password === 'adminadmin') {
-      // Attempt to sign in with admin credentials
+    try {
+      // Special case for admin account
+      if (data.email.includes('admin') && data.password === 'adminadmin') {
+        console.log("Trying admin login with:", data.email, "adminadmin");
+        toast.info("Attempting admin login...");
+        
+        const success = await signIn(data.email, data.password);
+        if (success) {
+          toast.success("Admin login successful!");
+          navigate('/dashboard');
+        } else {
+          toast.error("Admin login failed. The admin account might not exist yet.");
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // Regular sign in
       const success = await signIn(data.email, data.password);
       if (success) {
-        navigate('/');
+        toast.success("Login successful!");
+        navigate('/dashboard');
       } else {
-        // If failed, it could be that the admin account doesn't exist yet
-        // You might want to handle this scenario differently in a real app
+        toast.error("Login failed. Please check your credentials.");
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An error occurred during login.");
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Regular sign in
-    const success = await signIn(data.email, data.password);
-    if (success) {
-      navigate('/');
-    }
-    setIsLoading(false);
   };
 
   const togglePasswordVisibility = () => {
