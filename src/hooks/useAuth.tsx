@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface User {
   id: string;
@@ -53,6 +54,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<any>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Set up auth state listener first
@@ -73,7 +75,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             console.error('Error fetching user profile:', profileError);
           }
           
-          // Check if user is admin (demo: if email includes "admin")
+          // Check if user is admin (if email includes "admin")
           const isAdmin = session.user.email?.includes('admin') || false;
           
           setUser({
@@ -111,7 +113,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Check if user is admin (demo: if email includes "admin")
+            // Check if user is admin (if email includes "admin")
             const isAdmin = session.user.email?.includes('admin') || false;
             
             setUser({
@@ -159,8 +161,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Login failed. Please try again.');
-      toast.error('Login failed. Please try again.');
+      setError(t('Login failed. Please try again.'));
+      toast.error(t('Login failed. Please try again.'));
       setIsLoading(false);
       return false;
     }
@@ -188,12 +190,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      toast.success('Registration successful! Please check your email to confirm your account.');
+      toast.success(t('Registration successful! Please check your email to confirm your account.'));
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Registration failed. Please try again.');
-      toast.error('Registration failed. Please try again.');
+      setError(t('Registration failed. Please try again.'));
+      toast.error(t('Registration failed. Please try again.'));
       setIsLoading(false);
       return false;
     }
@@ -224,12 +226,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      toast.success(`Password reset link sent to ${email}`);
+      toast.success(t(`Password reset link sent to ${email}`));
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Failed to send reset email. Please try again.');
-      toast.error('Failed to send reset email. Please try again.');
+      setError(t('Failed to send reset email. Please try again.'));
+      toast.error(t('Failed to send reset email. Please try again.'));
       setIsLoading(false);
       return false;
     }
@@ -251,12 +253,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      toast.success('Password has been reset successfully');
+      toast.success(t('Password has been reset successfully'));
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Password reset failed. Please try again.');
-      toast.error('Password reset failed. Please try again.');
+      setError(t('Password reset failed. Please try again.'));
+      toast.error(t('Password reset failed. Please try again.'));
       setIsLoading(false);
       return false;
     }
@@ -278,16 +280,16 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       
       if (error) {
         console.error('Error updating profile:', error);
-        toast.error('Failed to update profile');
+        toast.error(t('Failed to update profile'));
         return;
       }
       
       // Update local state
       setUser(prev => prev ? { ...prev, ...userData } : null);
-      toast.success('Profile updated successfully');
+      toast.success(t('Profile updated successfully'));
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('Failed to update profile'));
     }
   };
 
@@ -303,16 +305,16 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       
       if (error) {
         console.error('Error updating profile image:', error);
-        toast.error('Failed to update profile image');
+        toast.error(t('Failed to update profile image'));
         return;
       }
       
       // Update local state
       setUser(prev => prev ? { ...prev, profileImage: imageUrl } : null);
-      toast.success('Profile image updated successfully');
+      toast.success(t('Profile image updated successfully'));
     } catch (error) {
       console.error('Error updating profile image:', error);
-      toast.error('Failed to update profile image');
+      toast.error(t('Failed to update profile image'));
     }
   };
 
@@ -328,8 +330,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       });
       
       if (signInError) {
-        setError('Current password is incorrect');
-        toast.error('Current password is incorrect');
+        setError(t('Current password is incorrect'));
+        toast.error(t('Current password is incorrect'));
         setIsLoading(false);
         return false;
       }
@@ -346,12 +348,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         return false;
       }
       
-      toast.success('Password updated successfully');
+      toast.success(t('Password updated successfully'));
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Failed to update password. Please try again.');
-      toast.error('Failed to update password. Please try again.');
+      setError(t('Failed to update password. Please try again.'));
+      toast.error(t('Failed to update password. Please try again.'));
       setIsLoading(false);
       return false;
     }
@@ -369,8 +371,8 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       });
       
       if (signInError) {
-        setError('Current password is incorrect');
-        toast.error('Current password is incorrect');
+        setError(t('Current password is incorrect'));
+        toast.error(t('Current password is incorrect'));
         setIsLoading(false);
         return false;
       }
@@ -397,12 +399,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         console.error('Error updating email in profile:', profileError);
       }
       
-      toast.success('Email updated successfully. Please check your new email to confirm the change.');
+      toast.success(t('Email updated successfully. Please check your new email to confirm the change.'));
       setIsLoading(false);
       return true;
     } catch (error) {
-      setError('Failed to update email. Please try again.');
-      toast.error('Failed to update email. Please try again.');
+      setError(t('Failed to update email. Please try again.'));
+      toast.error(t('Failed to update email. Please try again.'));
       setIsLoading(false);
       return false;
     }
